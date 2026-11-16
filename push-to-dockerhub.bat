@@ -1,30 +1,41 @@
 @echo off
-setlocal
+setlocal enabledelayedexpansion
 
 echo ========================================================
 echo   Auto-Pushing All Healthcare Images to Docker Hub
 echo ========================================================
 echo.
 
-:: Hardcoded Username & Tag
-set DOCKER_USER=rajan69106
-set TAG=latest
+:: Load settings from .env file if it exists
+if exist .env (
+    for /f "usebackq tokens=1,2 delims==" %%A in (.env) do (
+        set %%A=%%B
+    )
+)
+
+if "%DOCKER_USER%"=="" set DOCKER_USER=rajan69106
+if "%TAG%"=="" set TAG=latest
 
 echo Target Account: https://hub.docker.com/u/%DOCKER_USER%
 echo Image Tag:      %TAG%
 echo.
 
-:: Step 1: Ensure Docker Login
-echo Checking Docker login status...
-docker login -u %DOCKER_USER%
+:: Step 1: Login to Docker Hub
+echo Logging into Docker Hub...
+if not "%DOCKER_TOKEN%"=="" (
+    echo %DOCKER_TOKEN% | docker login -u %DOCKER_USER% --password-stdin
+) else (
+    docker login -u %DOCKER_USER%
+)
+
 if errorlevel 1 (
     echo.
-    echo [ERROR] Docker login failed! Please check credentials.
+    echo [ERROR] Docker login failed!
     pause
     exit /b %errorlevel%
 )
 
-:: Step 2: Build all 5 images automatically
+:: Step 2: Build all 5 images
 echo.
 echo ========================================================
 echo 1/2: Building all 5 Docker Images...
@@ -37,7 +48,7 @@ if errorlevel 1 (
     exit /b %errorlevel%
 )
 
-:: Step 3: Push all 5 images automatically
+:: Step 3: Push all 5 images
 echo.
 echo ========================================================
 echo 2/2: Uploading all 5 images to Docker Hub...
@@ -52,7 +63,7 @@ if errorlevel 1 (
 
 echo.
 echo ========================================================
-echo [SUCCESS] All 5 images uploaded successfully!
+echo [SUCCESS] All 5 images uploaded successfully to Docker Hub!
 echo ========================================================
 echo 1. %DOCKER_USER%/healthcare-authservice:%TAG%
 echo 2. %DOCKER_USER%/healthcare-healthcareservice:%TAG%

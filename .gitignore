@@ -22,3 +22,7 @@ Thumbs.db
 
 # Temporary & Log files
 *.log
+
+# Secrets
+.env
+.env.*
