@@ -34,9 +34,6 @@ jobs:
         run: |
           docker compose push
 
-  # ------------------------------------------------------------
-  # JOB 2: Auto-Deploy on Local System (Self-Hosted Runner)
-  # ------------------------------------------------------------
   deploy:
     name: 2. Auto-Deploy to Docker Containers
     needs: build-and-push
