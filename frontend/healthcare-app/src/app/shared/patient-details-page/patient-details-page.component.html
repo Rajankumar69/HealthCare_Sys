@@ -1,0 +1,517 @@
+    <div class="patient-page-layout">
+      <!-- TOP ACTION BAR / NAVBAR (Deep Teal Clinic Header) -->
+      <header class="details-navbar">
+        <div class="nav-left">
+          <button mat-button class="back-btn" (click)="goBack()">
+            <mat-icon>arrow_back</mat-icon>
+            Back to Dashboard
+          </button>
+          <span class="nav-divider">|</span>
+          <span class="portal-badge">
+            <mat-icon>assignment_ind</mat-icon>
+            Patient Medical Chart
+          </span>
+        </div>
+
+        <div class="nav-right" *ngIf="currentUser">
+          <div class="user-chip">
+            <mat-icon>account_circle</mat-icon>
+            <span>{{ currentUser.fullName }} ({{ currentUser.role }})</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- MAIN CONTAINER -->
+      <div class="page-container">
+
+        <!-- LOADING STATE -->
+        <div *ngIf="isLoading" class="state-card loading-card">
+          <mat-spinner diameter="48"></mat-spinner>
+          <h3>Loading Patient Records...</h3>
+          <p>Retrieving complete demographic, vitals, and medical history from SQL Server.</p>
+        </div>
+
+        <!-- ERROR STATE -->
+        <div *ngIf="errorMessage && !isLoading" class="state-card error-card">
+          <mat-icon class="error-icon">error_outline</mat-icon>
+          <h3>Unable to Load Patient Record</h3>
+          <p>{{ errorMessage }}</p>
+          <div class="error-actions">
+            <button mat-flat-button color="primary" (click)="loadPatientDetails()">
+              <mat-icon>refresh</mat-icon> Retry
+            </button>
+            <button mat-stroked-button (click)="goBack()">
+              <mat-icon>arrow_back</mat-icon> Return to Dashboard
+            </button>
+          </div>
+        </div>
+
+        <!-- MAIN PATIENT CONTENT -->
+        <div *ngIf="!isLoading && details" class="patient-content-wrapper">
+
+          <!-- HERO PATIENT BANNER (Stitch Redesign Card) -->
+          <div class="patient-hero-card">
+            <div class="hero-top-bar">
+              <div class="hero-left">
+                <!-- Monogram Avatar -->
+                <div class="patient-avatar">
+                  <span class="avatar-text">{{ getInitials() }}</span>
+                </div>
+
+                <!-- Identity & Meta Info Chips -->
+                <div class="hero-meta">
+                  <div class="name-row">
+                    <h1>{{ details.patientDetails.prefix }} {{ details.patientDetails.firstName }} {{ details.patientDetails.lastName }}</h1>
+                    <span class="status-active-badge">
+                      <span class="dot"></span> Active Patient
+                    </span>
+                  </div>
+
+                  <div class="badges-row">
+                    <span class="pill id-pill">
+                      <mat-icon>badge</mat-icon> ID: #{{ details.patientDetails.patientID }}
+                    </span>
+                    <span class="pill adhar-pill">
+                      <mat-icon>fingerprint</mat-icon> Aadhaar: {{ details.patientDetails.adharNumber }}
+                    </span>
+                    <span class="pill age-pill">
+                      <mat-icon>schedule</mat-icon> Age: {{ details.patientDetails.age }} Years
+                    </span>
+                    <span class="pill contact-pill">
+                      <mat-icon>call</mat-icon> {{ details.patientDetails.phoneNumber }}
+                    </span>
+                    <span class="pill email-pill">
+                      <mat-icon>mail</mat-icon> {{ details.patientDetails.email }}
+                    </span>
+                    <span class="pill blood-pill" *ngIf="latestBloodGroup">
+                      <mat-icon>bloodtype</mat-icon> Blood Group: {{ latestBloodGroup }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right: Coral Gradient AI Summary Button -->
+              <div class="hero-right">
+                <button class="coral-ai-btn" (click)="generateAiSummary()" [disabled]="isAiGenerating" type="button">
+                  <span class="sparkle-icon">
+                    <mat-icon>auto_awesome</mat-icon>
+                  </span>
+                  <span class="btn-text">{{ isAiGenerating ? 'AI Generating Brief...' : 'Generate AI Clinical Summary' }}</span>
+                  <span class="ai-badge">AI</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Chief Complaint Banner -->
+            <div class="complaint-banner" *ngIf="details.patientDetails.problem">
+              <div class="complaint-icon">
+                <mat-icon>medical_services</mat-icon>
+              </div>
+              <div class="complaint-text">
+                <span class="complaint-title">Reported Chief Problem / Complaint:</span>
+                <span class="complaint-desc">{{ details.patientDetails.problem }}</span>
+              </div>
+            </div>
+
+            <!-- AI STREAMING SUMMARY CARD -->
+            <div *ngIf="showAiPanel" class="ai-streaming-card">
+              <div class="stream-header">
+                <div class="stream-title">
+                  <mat-icon>psychology</mat-icon>
+                  <span>Clinical Briefing Copilot (GPT-OSS 120B via Groq)</span>
+                  <span *ngIf="isAiGenerating" class="streaming-pill">Streaming Live...</span>
+                </div>
+                <button mat-icon-button (click)="closeAiPanel()" title="Close Briefing">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+
+              <div *ngIf="aiError" class="ai-error-box">
+                <mat-icon>error</mat-icon> {{ aiError }}
+              </div>
+
+              <div *ngIf="!aiSummary && isAiGenerating" class="ai-loading-box">
+                <mat-spinner diameter="24"></mat-spinner>
+                <span>Synthesizing vital trends, active conditions, and clinical notes...</span>
+              </div>
+
+              <div *ngIf="aiSummary" class="ai-summary-rendered-content" [innerHTML]="renderedAiSummary"></div>
+            </div>
+          </div>
+
+          <!-- 3 DISTINCT SECTIONS USING MATERIAL TABS -->
+          <div class="sections-container-card">
+            <mat-tab-group animationDuration="250ms" class="patient-tabs" dynamicHeight>
+
+              <!-- ========================================== -->
+              <!-- SECTION 1: PATIENT DETAILS -->
+              <!-- ========================================== -->
+              <mat-tab>
+                <ng-template mat-tab-label>
+                  <mat-icon class="tab-header-icon">badge</mat-icon>
+                  <span class="tab-header-title">1. Patient Details</span>
+                </ng-template>
+
+                <div class="tab-inner-content">
+                  <div class="section-intro">
+                    <h3>Demographic & Registration Information</h3>
+                    <p>Official verified registration records for this patient.</p>
+                  </div>
+
+                  <div class="details-grid">
+                    <div class="data-cell">
+                      <span class="label">Prefix & Full Name</span>
+                      <span class="value strong">{{ details.patientDetails.prefix }} {{ details.patientDetails.firstName }} {{ details.patientDetails.lastName }}</span>
+                    </div>
+
+                    <div class="data-cell">
+                      <span class="label">Email Address</span>
+                      <span class="value">{{ details.patientDetails.email }}</span>
+                    </div>
+
+                    <div class="data-cell">
+                      <span class="label">Phone Number</span>
+                      <span class="value">{{ details.patientDetails.phoneNumber }}</span>
+                    </div>
+
+                    <div class="data-cell">
+                      <span class="label">Date of Birth</span>
+                      <span class="value">{{ details.patientDetails.dateOfBirth | date:'longDate' }}</span>
+                    </div>
+
+                    <div class="data-cell">
+                      <span class="label">Age</span>
+                      <span class="value">{{ details.patientDetails.age }} Years Old</span>
+                    </div>
+
+                    <div class="data-cell">
+                      <span class="label">Aadhaar / National ID</span>
+                      <span class="value monospace">{{ details.patientDetails.adharNumber }}</span>
+                    </div>
+
+                    <div class="data-cell">
+                      <span class="label">Blood Group</span>
+                      <span class="value strong highlight-blood">{{ latestBloodGroup || 'Not Recorded' }}</span>
+                    </div>
+
+                    <div class="data-cell full-span highlight-box">
+                      <span class="label">Chief Medical Complaint / Problem</span>
+                      <span class="value problem-text">{{ details.patientDetails.problem || 'No active complaint registered' }}</span>
+                    </div>
+
+                    <div class="data-cell full-span">
+                      <span class="label">Prior Medical History (Registered Note)</span>
+                      <span class="value">{{ details.patientDetails.anyMedicalHistory || 'No prior medical history specified at registration' }}</span>
+                    </div>
+
+                    <div class="data-cell">
+                      <span class="label">Registration Date</span>
+                      <span class="value">{{ details.patientDetails.createdAt | date:'medium' }}</span>
+                    </div>
+
+                    <div class="data-cell">
+                      <span class="label">Last Record Update</span>
+                      <span class="value">{{ details.patientDetails.updatedAt ? (details.patientDetails.updatedAt | date:'medium') : 'No updates recorded' }}</span>
+                    </div>
+
+                    <div class="data-cell">
+                      <span class="label">Audit Status</span>
+                      <span class="value text-success">
+                        <mat-icon class="mini-icon">verified</mat-icon> Verified Record (Active)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </mat-tab>
+
+              <!-- ========================================== -->
+              <!-- SECTION 2: PATIENT VITALS -->
+              <!-- ========================================== -->
+              <mat-tab>
+                <ng-template mat-tab-label>
+                  <mat-icon class="tab-header-icon">monitor_heart</mat-icon>
+                  <span class="tab-header-title">2. Patient Vitals</span>
+                  <span class="tab-count-badge" *ngIf="details.patientVitals && details.patientVitals.length > 0">{{ details.patientVitals.length }}</span>
+                </ng-template>
+
+                <div class="tab-inner-content">
+                  <div class="section-header-bar">
+                    <div>
+                      <h3>Patient Vital Signs</h3>
+                      <p>Chronological triage measurements including blood pressure, heart rate, temperature, and weight.</p>
+                    </div>
+
+                    <!-- Can add vitals if Doctor or Nurse -->
+                    <button *ngIf="canEditRecords" mat-flat-button color="primary" (click)="toggleVitalForm()">
+                      <mat-icon>{{ showVitalForm ? 'close' : 'add_chart' }}</mat-icon>
+                      {{ showVitalForm ? 'Cancel' : 'Record New Vitals' }}
+                    </button>
+                  </div>
+
+                  <!-- RECORD NEW VITALS FORM -->
+                  <div *ngIf="showVitalForm" class="record-form-card">
+                    <div class="form-title-row">
+                      <mat-icon color="primary">add_circle</mat-icon>
+                      <h4>Record New Vital Signs</h4>
+                    </div>
+
+                    <form [formGroup]="vitalForm" (ngSubmit)="submitVital()">
+                      <div class="form-grid-4">
+                        <mat-form-field appearance="outline">
+                          <mat-label>Blood Pressure (mmHg)</mat-label>
+                          <input matInput formControlName="bloodPressure" placeholder="e.g. 120/80">
+                          <mat-hint>Format: Systolic/Diastolic</mat-hint>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Heart Rate (bpm)</mat-label>
+                          <input matInput type="number" formControlName="heartRate" placeholder="e.g. 72">
+                          <mat-hint>Resting pulse</mat-hint>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Temperature (Â°F)</mat-label>
+                          <input matInput type="number" step="0.1" formControlName="temperature" placeholder="e.g. 98.6">
+                          <mat-hint>Body temp</mat-hint>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Body Weight (kg)</mat-label>
+                          <input matInput type="number" step="0.1" formControlName="weight" placeholder="e.g. 70.0">
+                          <mat-hint>In kilograms</mat-hint>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Blood Group</mat-label>
+                          <mat-select formControlName="bloodGroup">
+                            <mat-option *ngFor="let bg of bloodGroups" [value]="bg">{{ bg }}</mat-option>
+                          </mat-select>
+                          <mat-hint>ABO & Rh factor</mat-hint>
+                        </mat-form-field>
+                      </div>
+
+                      <div class="form-actions">
+                        <button mat-button type="button" (click)="showVitalForm = false">Cancel</button>
+                        <button mat-flat-button color="primary" type="submit" [disabled]="vitalForm.invalid || isSaving">
+                          <mat-icon>save</mat-icon> Save Vitals Entry
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+
+                  <!-- VITALS TABLE -->
+                  <div *ngIf="details.patientVitals && details.patientVitals.length > 0" class="table-container mat-elevation-z1">
+                    <table mat-table [dataSource]="details.patientVitals" class="w-100 modern-table">
+                      <ng-container matColumnDef="recordedDate">
+                        <th mat-header-cell *matHeaderCellDef>Date & Time Recorded</th>
+                        <td mat-cell *matCellDef="let v">
+                          <div class="date-cell">
+                            <strong>{{ v.recordedDate | date:'mediumDate' }}</strong>
+                            <small class="text-muted">{{ v.recordedDate | date:'shortTime' }}</small>
+                          </div>
+                        </td>
+                      </ng-container>
+
+                      <ng-container matColumnDef="bloodPressure">
+                        <th mat-header-cell *matHeaderCellDef>Blood Pressure</th>
+                        <td mat-cell *matCellDef="let v">
+                          <span class="vital-value bp-tag">{{ v.bloodPressure }} mmHg</span>
+                        </td>
+                      </ng-container>
+
+                      <ng-container matColumnDef="heartRate">
+                        <th mat-header-cell *matHeaderCellDef>Heart Rate</th>
+                        <td mat-cell *matCellDef="let v">
+                          <span class="vital-value hr-tag">
+                            <mat-icon class="pulse-icon">favorite</mat-icon> {{ v.heartRate }} bpm
+                          </span>
+                        </td>
+                      </ng-container>
+
+                      <ng-container matColumnDef="temperature">
+                        <th mat-header-cell *matHeaderCellDef>Temperature</th>
+                        <td mat-cell *matCellDef="let v">
+                          <span class="vital-value temp-tag">{{ v.temperature }} °F</span>
+                        </td>
+                      </ng-container>
+
+                      <ng-container matColumnDef="weight">
+                        <th mat-header-cell *matHeaderCellDef>Weight</th>
+                        <td mat-cell *matCellDef="let v">
+                          <span class="vital-value weight-tag">{{ v.weight }} kg</span>
+                        </td>
+                      </ng-container>
+
+                      <ng-container matColumnDef="bloodGroup">
+                        <th mat-header-cell *matHeaderCellDef>Blood Group</th>
+                        <td mat-cell *matCellDef="let v">
+                          <span class="vital-value blood-tag">{{ v.bloodGroup || 'N/A' }}</span>
+                        </td>
+                      </ng-container>
+
+                      <ng-container matColumnDef="recordedBy">
+                        <th mat-header-cell *matHeaderCellDef>Logged By</th>
+                        <td mat-cell *matCellDef="let v">
+                          <span class="staff-tag">{{ v.recordedBy || 'Nursing Staff' }}</span>
+                        </td>
+                      </ng-container>
+
+                      <tr mat-header-row *matHeaderRowDef="vitalColumns"></tr>
+                      <tr mat-row *matRowDef="let row; columns: vitalColumns;"></tr>
+                    </table>
+                  </div>
+
+                  <!-- EMPTY STATE -->
+                  <div *ngIf="(!details.patientVitals || details.patientVitals.length === 0) && !showVitalForm" class="empty-state-box">
+                    <mat-icon class="empty-icon">monitor_heart</mat-icon>
+                    <h4>No Vitals Recorded Yet</h4>
+                    <p>There are no vital sign measurements recorded for this patient.</p>
+                    <button *ngIf="canEditRecords" mat-stroked-button color="primary" (click)="showVitalForm = true">
+                      <mat-icon>add</mat-icon> Record First Vitals
+                    </button>
+                  </div>
+                </div>
+              </mat-tab>
+
+              <!-- ========================================== -->
+              <!-- SECTION 3: PATIENT MEDICAL HISTORY -->
+              <!-- ========================================== -->
+              <mat-tab>
+                <ng-template mat-tab-label>
+                  <mat-icon class="tab-header-icon">history_edu</mat-icon>
+                  <span class="tab-header-title">3. Patient Medical History</span>
+                  <span class="tab-count-badge" *ngIf="details.patientMedicalHistory && details.patientMedicalHistory.length > 0">{{ details.patientMedicalHistory.length }}</span>
+                </ng-template>
+
+                <div class="tab-inner-content">
+                  <div class="section-header-bar">
+                    <div>
+                      <h3>Medical Diagnoses & Treatment History</h3>
+                      <p>Documented medical conditions, chronic illnesses, and ongoing or past treatment regimens.</p>
+                    </div>
+
+                    <!-- Can add medical history ONLY if Nurse or Patient (Doctor view-only) -->
+                    <button *ngIf="canAddMedicalHistory" mat-flat-button color="primary" (click)="toggleHistoryForm()">
+                      <mat-icon>{{ showHistoryForm ? 'close' : 'post_add' }}</mat-icon>
+                      {{ showHistoryForm ? 'Cancel' : 'Add Medical Condition' }}
+                    </button>
+                    <span class="role-view-badge" *ngIf="!canAddMedicalHistory">
+                      <mat-icon>visibility</mat-icon> Doctor (View Only)
+                    </span>
+                  </div>
+
+                  <!-- ADD MEDICAL CONDITION FORM (NURSE & PATIENT ONLY) -->
+                  <div *ngIf="showHistoryForm && canAddMedicalHistory" class="record-form-card medical-history-form">
+                    <div class="form-title-row">
+                      <div class="form-badge-icon">
+                        <mat-icon>post_add</mat-icon>
+                      </div>
+                      <div class="title-meta">
+                        <h4>Add Medical Condition & Treatment</h4>
+                        <p class="subtitle">Record formal clinical diagnosis, medications, and observations</p>
+                      </div>
+                    </div>
+
+                    <form [formGroup]="historyForm" (ngSubmit)="submitHistory()">
+                      <!-- Row 1: Condition (65%) and Diagnosis Date with Calendar picker (35%) -->
+                      <div class="form-row-condition">
+                        <mat-form-field appearance="outline" class="col-condition">
+                          <mat-label>Medical Condition / Diagnosis *</mat-label>
+                          <input matInput formControlName="condition" placeholder="e.g. Type 2 Diabetes, Hypertension, Asthma" required>
+                          <mat-icon matPrefix>healing</mat-icon>
+                          <mat-error *ngIf="historyForm.get('condition')?.hasError('required')">Condition is required</mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" class="col-date">
+                          <mat-label>Diagnosis Date (Optional)</mat-label>
+                          <input matInput [matDatepicker]="diagPicker" formControlName="diagnosisDate" placeholder="MM/DD/YYYY">
+                          <mat-datepicker-toggle matIconSuffix [for]="diagPicker"></mat-datepicker-toggle>
+                          <mat-datepicker #diagPicker></mat-datepicker>
+                        </mat-form-field>
+                      </div>
+
+                      <!-- Row 2: Prescribed Treatment / Medications (100% full width) -->
+                      <div class="form-row-full">
+                        <mat-form-field appearance="outline" class="w-100">
+                          <mat-label>Prescribed Treatment / Current Medications</mat-label>
+                          <input matInput formControlName="treatment" placeholder="e.g. Metformin 500mg BID, Salbutamol Inhaler, Lifestyle changes">
+                          <mat-icon matPrefix>medication</mat-icon>
+                        </mat-form-field>
+                      </div>
+
+                      <!-- Row 3: Clinical Notes & Observations (100% full width textarea) -->
+                      <div class="form-row-full">
+                        <mat-form-field appearance="outline" class="w-100">
+                          <mat-label>Clinical Notes & Observations</mat-label>
+                          <textarea matInput rows="3" formControlName="notes" placeholder="Enter clinical observations, lab reports summary, or follow-up notes..."></textarea>
+                          <mat-icon matPrefix>notes</mat-icon>
+                        </mat-form-field>
+                      </div>
+
+                      <div class="form-actions-clean">
+                        <button mat-button type="button" class="btn-cancel" (click)="toggleHistoryForm()">Cancel</button>
+                        <button class="btn-save-medical" type="submit" [disabled]="historyForm.invalid || isSaving">
+                          <mat-icon *ngIf="!isSaving">save</mat-icon>
+                          <span *ngIf="!isSaving">Save Medical Entry</span>
+                          <span *ngIf="isSaving">Saving...</span>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+
+                  <!-- MEDICAL HISTORY CARDS LIST -->
+                  <div *ngIf="details.patientMedicalHistory && details.patientMedicalHistory.length > 0" class="history-cards-grid">
+                    <div *ngFor="let h of details.patientMedicalHistory" class="history-card">
+                      <div class="history-card-header">
+                        <div class="condition-badge">
+                          <mat-icon>healing</mat-icon>
+                          <h4>{{ h.condition }}</h4>
+                        </div>
+                        <span class="diagnosis-date">
+                          {{ h.diagnosisDate ? ('Diagnosed: ' + (h.diagnosisDate | date:'mediumDate')) : 'Diagnosis date not specified' }}
+                        </span>
+                      </div>
+
+                      <div class="history-card-body">
+                        <div class="history-info-row" *ngIf="h.treatment">
+                          <span class="info-label">
+                            <mat-icon>medication</mat-icon> Prescribed Treatment:
+                          </span>
+                          <span class="info-val treatment-val">{{ h.treatment }}</span>
+                        </div>
+
+                        <div class="history-info-row" *ngIf="h.notes">
+                          <span class="info-label">
+                            <mat-icon>notes</mat-icon> Clinical Notes:
+                          </span>
+                          <span class="info-val notes-val">{{ h.notes }}</span>
+                        </div>
+
+                        <div class="history-card-footer">
+                          <span class="logged-date">
+                            <mat-icon class="mini-icon">event</mat-icon>
+                            Logged on: {{ h.recordedDate | date:'medium' }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- EMPTY STATE -->
+                  <div *ngIf="(!details.patientMedicalHistory || details.patientMedicalHistory.length === 0) && !showHistoryForm" class="empty-state-box">
+                    <mat-icon class="empty-icon">history_edu</mat-icon>
+                    <h4>No Medical History Recorded</h4>
+                    <p>No chronic conditions or past treatment histories have been added to this chart.</p>
+                    <button *ngIf="canEditRecords" mat-stroked-button color="primary" (click)="showHistoryForm = true">
+                      <mat-icon>add</mat-icon> Add Initial Medical Condition
+                    </button>
+                  </div>
+                </div>
+              </mat-tab>
+
+            </mat-tab-group>
+          </div>
+
+        </div>
+      </div>
+    </div>

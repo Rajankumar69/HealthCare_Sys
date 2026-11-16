@@ -1,0 +1,581 @@
+<div class="patient-dashboard-wrapper">
+  <!-- TOP NAVBAR -->
+  <mat-toolbar color="primary" class="main-navbar">
+    <div class="nav-left">
+      <span class="material-icons logo-icon">favorite</span>
+      <span class="portal-title">Patient Health Portal</span>
+    </div>
+
+    <!-- Navigation Tabs (Only My Appointments and Book New Appointment) -->
+    <div class="nav-links">
+      <button mat-button (click)="setActiveTab(0)" [class.active-link]="activeTab === 0">
+        <mat-icon>calendar_month</mat-icon>
+        My Appointments
+      </button>
+      <button mat-button (click)="setActiveTab(1)" [class.active-link]="activeTab === 1">
+        <mat-icon>add_circle_outline</mat-icon>
+        Book New Appointment
+      </button>
+      <button mat-flat-button class="patient-ai-summary-btn" (click)="openAiPatientSummary()" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: white; border-radius: 999px; margin-left: 8px; font-weight: 600;"><mat-icon>auto_awesome</mat-icon> AI Health Summary</button>
+      <button mat-flat-button class="patient-ai-chat-btn" (click)="openAiChatModal()" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border-radius: 999px; margin-left: 8px; font-weight: 600;"><mat-icon>chat</mat-icon> Ask AI Assistant</button>
+    </div>
+
+    <!-- Profile Dropdown with Name, Role, and Edit Details -->
+    <div class="nav-right">
+      <button mat-button [matMenuTriggerFor]="profileMenu" class="profile-btn">
+        <div class="profile-chip">
+          <span class="material-icons avatar-icon">person</span>
+          <div class="profile-meta">
+            <span class="user-name">{{ currentUser?.fullName || 'Patient' }}</span>
+            <span class="user-role">{{ currentUser?.role }}</span>
+          </div>
+          <mat-icon class="dropdown-arrow">arrow_drop_down</mat-icon>
+        </div>
+      </button>
+
+      <mat-menu #profileMenu="matMenu">
+        <div class="menu-profile-card">
+          <p class="menu-name">{{ currentUser?.fullName }}</p>
+          <p class="menu-email">{{ currentUser?.email }}</p>
+          <span class="badge-role">{{ currentUser?.role }}</span>
+        </div>
+        <mat-divider></mat-divider>
+        <button mat-menu-item (click)="openEditProfile()">
+          <mat-icon color="primary">edit</mat-icon>
+          <span>Edit Details</span>
+        </button>
+        <button mat-menu-item (click)="logout()">
+          <mat-icon color="warn">logout</mat-icon>
+          <span>Sign Out</span>
+        </button>
+      </mat-menu>
+    </div>
+  </mat-toolbar>
+
+  <!-- DASHBOARD BODY: SIDE PLANE (PATIENT DETAILS) + MAIN CONTENT -->
+  <div class="dashboard-body">
+
+    <!-- PATIENT DETAILS SIDE PLANE / SIDEBAR -->
+    <aside class="patient-sidebar">
+      <div class="patient-card">
+        <!-- Patient Avatar Circle & Indicator -->
+        <div class="patient-photo-wrapper">
+          <div class="patient-avatar-circle">
+            <span class="avatar-initials">{{ getInitials() }}</span>
+          </div>
+          <div class="online-indicator" title="Active Patient Account"></div>
+        </div>
+
+        <h3 class="patient-name">
+          {{ currentPatient ? (currentPatient.prefix + ' ' + currentPatient.firstName + ' ' + currentPatient.lastName) : (currentUser?.fullName || 'Patient Profile') }}
+        </h3>
+        <p class="patient-role-title">Registered Patient</p>
+        <div class="patient-id-badge">
+          <mat-icon>badge</mat-icon>
+          <span>PAT-#{{ currentPatient?.patientID || '---' }}</span>
+        </div>
+
+        <!-- Demographics & Contact Quick Info List -->
+        <div class="patient-info-list">
+          <!-- Gender -->
+          <div class="info-item">
+            <mat-icon class="item-icon">wc</mat-icon>
+            <div class="item-meta">
+              <span class="item-label">Gender</span>
+              <span class="item-val">{{ currentPatient?.gender || 'Not specified' }}</span>
+            </div>
+          </div>
+
+          <!-- Age & Date of Birth -->
+          <div class="info-item">
+            <mat-icon class="item-icon">cake</mat-icon>
+            <div class="item-meta">
+              <span class="item-label">Age / DOB</span>
+              <span class="item-val">
+                {{ currentPatient?.age ?? '--' }} Yrs
+                <span *ngIf="currentPatient?.dateOfBirth" class="item-sub">({{ currentPatient?.dateOfBirth | date:'mediumDate' }})</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Aadhaar Number -->
+          <div class="info-item">
+            <mat-icon class="item-icon">fingerprint</mat-icon>
+            <div class="item-meta">
+              <span class="item-label">Aadhaar / National ID</span>
+              <span class="item-val">{{ currentPatient?.adharNumber || 'Not provided' }}</span>
+            </div>
+          </div>
+
+          <!-- Phone Number -->
+          <div class="info-item">
+            <mat-icon class="item-icon">phone</mat-icon>
+            <div class="item-meta">
+              <span class="item-label">Phone</span>
+              <span class="item-val">{{ currentPatient?.phoneNumber || 'No phone' }}</span>
+            </div>
+          </div>
+
+          <!-- Email Address -->
+          <div class="info-item">
+            <mat-icon class="item-icon">email</mat-icon>
+            <div class="item-meta">
+              <span class="item-label">Email</span>
+              <span class="item-val email-val">{{ currentPatient?.email || currentUser?.email }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Direct Edit Profile Trigger -->
+        <button mat-stroked-button class="sidebar-edit-btn" (click)="openEditProfile()">
+          <mat-icon>edit_note</mat-icon> Edit Profile Details
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN DASHBOARD CONTENT AREA -->
+    <main class="main-content">
+
+      <!-- TAB 0: MY APPOINTMENTS & STATUS TRACKER -->
+      <div *ngIf="activeTab === 0" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h2>My Appointments</h2>
+            <p class="sub">View your scheduled consultations and visit status.</p>
+          </div>
+          
+        </div>
+
+        <div *ngIf="appointments.length === 0" class="empty-state">
+          <span class="material-icons">event_busy</span>
+          <h3>No Scheduled Appointments</h3>
+          <p>You do not have any appointments yet. Click the button below to choose a date and doctor.</p>
+          <button mat-flat-button color="primary" (click)="setActiveTab(1)">Book Now</button>
+        </div>
+
+        <div class="appointments-list" *ngIf="appointments.length > 0">
+          <mat-card *ngFor="let appt of appointments" class="appointment-card">
+            <div class="card-main">
+              <div class="status-indicator" [ngClass]="getStatusColorClass(appt.status)"></div>
+              
+              <div class="details-col">
+                <div class="top-row">
+                  <span class="doctor-badge">{{ appt.doctorName }}</span>
+                  <span class="badge-status" [ngClass]="getStatusColorClass(appt.status)">
+                    {{ getStatusDisplayName(appt.status) }}
+                  </span>
+                </div>
+
+                <div class="time-row">
+                  <span class="material-icons">event</span>
+                  <strong>{{ appt.appointmentDate | date:'fullDate' }}</strong>
+                  <span class="time-sep">•</span>
+                  <span class="material-icons">schedule</span>
+                  <span>{{ appt.appointmentTime }}</span>
+                </div>
+
+                <p class="reason-text"><strong>Chief Reason:</strong> {{ appt.reason || 'General checkup' }}</p>
+
+                <!-- Live Workflow Progress Tracker -->
+                <div class="workflow-tracker">
+                  <div class="step" [class.completed]="isStepCompleted(appt.status, 1)">
+                    <div class="dot">1</div>
+                    <span>Slot Booked &amp; Confirmed</span>
+                  </div>
+                  <div class="line" [class.active]="isStepCompleted(appt.status, 2)"></div>
+                  <div class="step" [class.completed]="isStepCompleted(appt.status, 2)">
+                    <div class="dot">2</div>
+                    <span>Care Completed (Done)</span>
+                  </div>
+                </div>
+
+                <p *ngIf="appt.notes" class="notes-text">
+                  <span class="material-icons">chat</span> <strong>Staff Notes:</strong> {{ appt.notes }}
+                </p>
+              </div>
+            </div>
+
+            <div class="card-footer">
+              <span class="booked-on">Booked on {{ appt.createdAt | date:'mediumDate' }}</span>
+            </div>
+          </mat-card>
+        </div>
+      </div>
+
+      <!-- TAB 1: BOOK NEW APPOINTMENT FORM -->
+      <div *ngIf="activeTab === 1" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h2>Schedule an Appointment</h2>
+            <p class="sub">Select your doctor, convenient date, time slot, and reason for consultation.</p>
+          </div>
+        </div>
+
+        <mat-card class="form-card">
+          <form [formGroup]="bookingForm" (ngSubmit)="onBookAppointment()">
+            
+            <!-- Doctor Selection -->
+            <mat-form-field appearance="outline" class="w-100">
+              <mat-label>Select Consulting Doctor</mat-label>
+              <mat-select formControlName="doctorId">
+                <mat-option *ngFor="let doc of doctors" [value]="doc.userId">
+                  {{ doc.fullName }} {{ doc.departmentName ? '— ' + doc.departmentName : '' }} ({{ doc.email }})
+                </mat-option>
+              </mat-select>
+              <mat-icon matPrefix>medical_services</mat-icon>
+              <mat-error *ngIf="bookingForm.get('doctorId')?.hasError('required')">Please choose a doctor</mat-error>
+            </mat-form-field>
+
+            <!-- Appointment Duration Selector (15 min, 30 min, 1 hour) -->
+            <div class="duration-section">
+              <label class="duration-title">
+                <mat-icon>timelapse</mat-icon> Appointment Duration / Time Stamp *
+              </label>
+              <div class="duration-options-row">
+                <button type="button" 
+                        class="duration-chip" 
+                        [class.active]="bookingForm.get('durationMinutes')?.value === 15"
+                        (click)="onDurationChange(15)">
+                  <mat-icon>timer</mat-icon>
+                  <span class="chip-text">15 Minutes</span>
+                  <span class="chip-badge">Quick Triage</span>
+                </button>
+
+                <button type="button" 
+                        class="duration-chip" 
+                        [class.active]="bookingForm.get('durationMinutes')?.value === 30"
+                        (click)="onDurationChange(30)">
+                  <mat-icon>schedule</mat-icon>
+                  <span class="chip-text">30 Minutes</span>
+                  <span class="chip-badge">Standard Visit</span>
+                </button>
+
+                <button type="button" 
+                        class="duration-chip" 
+                        [class.active]="bookingForm.get('durationMinutes')?.value === 60"
+                        (click)="onDurationChange(60)">
+                  <mat-icon>hourglass_bottom</mat-icon>
+                  <span class="chip-text">1 Hour</span>
+                  <span class="chip-badge">Comprehensive</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="form-row two-col">
+              <!-- Appointment Date with Material Datepicker popup -->
+              <mat-form-field appearance="outline">
+                <mat-label>Appointment Date *</mat-label>
+                <input matInput [matDatepicker]="apptPicker" formControlName="appointmentDate" [min]="minDate" placeholder="MM/DD/YYYY">
+                <mat-datepicker-toggle matIconSuffix [for]="apptPicker"></mat-datepicker-toggle>
+                <mat-datepicker #apptPicker></mat-datepicker>
+                <mat-error *ngIf="bookingForm.get('appointmentDate')?.hasError('required')">Date is required</mat-error>
+              </mat-form-field>
+
+              <!-- Appointment Time Slot Dropdown (Booked slots are NOT bookable) -->
+              <mat-form-field appearance="outline">
+                <mat-label>Select Preferred Time Slot *</mat-label>
+                <mat-select formControlName="appointmentTime">
+                  <mat-option *ngIf="isLoadingSlots" disabled>
+                    <mat-spinner diameter="18"></mat-spinner> Checking doctor availability...
+                  </mat-option>
+                  <mat-option *ngIf="!isLoadingSlots && availableSlots.length === 0" disabled>
+                    Select doctor and date to see available slots
+                  </mat-option>
+                  <mat-option *ngFor="let slot of availableSlots" 
+                              [value]="slot.slotLabel" 
+                              [disabled]="slot.isBooked"
+                              [class.slot-option-booked]="slot.isBooked"
+                              [class.slot-option-available]="!slot.isBooked">
+                    <span class="slot-option-content">
+                      <span class="slot-time-text">
+                        <mat-icon class="slot-mini-icon">{{ slot.isBooked ? 'block' : 'check_circle' }}</mat-icon>
+                        {{ slot.slotLabel }}
+                      </span>
+                      <span class="slot-status-pill" [class.booked]="slot.isBooked" [class.free]="!slot.isBooked">
+                        {{ slot.isBooked ? 'Booked (Unavailable)' : 'Available' }}
+                      </span>
+                    </span>
+                  </mat-option>
+                </mat-select>
+                <mat-icon matPrefix>schedule</mat-icon>
+                <mat-hint *ngIf="availableSlots.length > 0">
+                  <span class="hint-bullet-free">● Available</span>
+                  <span class="hint-bullet-booked">● Booked slots cannot be selected</span>
+                </mat-hint>
+                <mat-error *ngIf="bookingForm.get('appointmentTime')?.hasError('required')">Please select an available time slot</mat-error>
+              </mat-form-field>
+            </div>
+
+            <div *ngIf="!isLoadingSlots && availableSlots.length > 0 && openSlotsCount === 0"
+                 style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; margin-bottom: 16px; border-radius: 10px; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; font-size: 0.88rem;">
+              <mat-icon>event_busy</mat-icon>
+              <span>No open slots are available for this doctor on the selected date. Appointments can only be placed when slots are open — please choose another date or doctor.</span>
+            </div>
+
+            <!-- Reason -->
+            <mat-form-field appearance="outline" class="w-100 field-with-hint">
+              <mat-label>Reason for Consultation / Symptoms</mat-label>
+              <textarea matInput formControlName="reason" rows="3" placeholder="Describe symptoms or reasons for visit..."></textarea>
+              <mat-error *ngIf="bookingForm.get('reason')?.hasError('required')">Reason is required</mat-error>
+            </mat-form-field>
+
+            <!-- Medical History and Current Treatments -->
+            <div class="form-row two-col field-row-with-hint">
+              <mat-form-field appearance="outline" class="field-with-hint">
+                <mat-label>Prior Medical History / Known Conditions</mat-label>
+                <input matInput formControlName="medicalHistory" placeholder="e.g. Type 2 Diabetes, Hypertension, Asthma, Allergies">
+                <mat-icon matPrefix>history_edu</mat-icon>
+                <mat-hint>Saved to your medical history & visible in patient detail chart</mat-hint>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="field-with-hint">
+                <mat-label>Current Medications / Treatments (Optional)</mat-label>
+                <input matInput formControlName="treatment" placeholder="e.g. Metformin 500mg, Daily Inhaler, None">
+                <mat-icon matPrefix>medication</mat-icon>
+                <mat-hint>Helps doctor prepare proper prescriptions</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              <button mat-button class="btn-cancel" type="button" (click)="setActiveTab(0)">Cancel</button>
+              <button class="btn-save-primary" type="submit" [disabled]="bookingForm.invalid || isSubmitting || isLoadingSlots || openSlotsCount === 0 || !isSelectedSlotOpen()">
+                <mat-icon *ngIf="!isSubmitting">event_available</mat-icon>
+                <span *ngIf="!isSubmitting">Book Appointment</span>
+                <span *ngIf="isSubmitting">Booking...</span>
+              </button>
+            </div>
+          </form>
+        </mat-card>
+      </div>
+
+      <!-- TAB 2: EDIT PATIENT PROFILE FORM (ACCESSIBLE FROM PROFILE DROPDOWN OR SIDEBAR) -->
+      <div *ngIf="activeTab === 2" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h2>Edit Patient Profile</h2>
+            <p class="sub">Update your personal details, gender, Aadhaar, and medical records. Changes instantly update the sidebar.</p>
+          </div>
+          <button mat-stroked-button (click)="setActiveTab(0)">
+            <mat-icon>arrow_back</mat-icon> Back to Appointments
+          </button>
+        </div>
+
+        <mat-card class="form-card profile-form-card">
+          <form [formGroup]="patientDetailsForm" (ngSubmit)="onSaveProfile()">
+            
+            <!-- Section 1: Basic Identity & Demographics -->
+            <div class="form-section-header first-section">
+              <div class="section-badge-icon">
+                <mat-icon>person</mat-icon>
+              </div>
+              <div class="section-title-wrap">
+                <h3>Personal Identification & Demographics</h3>
+                <p>Legal name, prefix, gender, and identity records</p>
+              </div>
+            </div>
+
+            <!-- Row 1: Prefix, First Name, Last Name -->
+            <div class="form-grid-row name-row-grid">
+              <mat-form-field appearance="outline" class="col-prefix">
+                <mat-label>Prefix *</mat-label>
+                <mat-select formControlName="prefix" required>
+                  <mat-option value="Mr.">Mr.</mat-option>
+                  <mat-option value="Mrs.">Mrs.</mat-option>
+                  <mat-option value="Ms.">Ms.</mat-option>
+                  <mat-option value="Dr.">Dr.</mat-option>
+                </mat-select>
+                <mat-error *ngIf="patientDetailsForm.get('prefix')?.hasError('required')">Prefix is required</mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="col-name">
+                <mat-label>First Name *</mat-label>
+                <input matInput formControlName="firstName" placeholder="First Name" required>
+                <mat-icon matPrefix>badge</mat-icon>
+                <mat-error *ngIf="patientDetailsForm.get('firstName')?.hasError('required')">First name is required</mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="col-name">
+                <mat-label>Last Name *</mat-label>
+                <input matInput formControlName="lastName" placeholder="Last Name" required>
+                <mat-icon matPrefix>badge</mat-icon>
+                <mat-error *ngIf="patientDetailsForm.get('lastName')?.hasError('required')">Last name is required</mat-error>
+              </mat-form-field>
+            </div>
+
+            <!-- Row 2: Gender, Date of Birth with Calendar picker, Age, Aadhaar -->
+            <div class="form-grid-row demog-row-grid">
+              <!-- Gender Field -->
+              <mat-form-field appearance="outline" class="col-gender">
+                <mat-label>Gender *</mat-label>
+                <mat-select formControlName="gender" required>
+                  <mat-option value="Male">Male</mat-option>
+                  <mat-option value="Female">Female</mat-option>
+                  <mat-option value="Other">Other</mat-option>
+                </mat-select>
+                <mat-icon matPrefix>wc</mat-icon>
+                <mat-error *ngIf="patientDetailsForm.get('gender')?.hasError('required')">Gender is required</mat-error>
+              </mat-form-field>
+
+              <!-- Date of Birth with Material Datepicker -->
+              <mat-form-field appearance="outline" class="col-dob">
+                <mat-label>Date of Birth *</mat-label>
+                <input matInput [matDatepicker]="dobPicker" formControlName="dateOfBirth" (dateChange)="calculateAge()" placeholder="MM/DD/YYYY" required>
+                <mat-datepicker-toggle matIconSuffix [for]="dobPicker"></mat-datepicker-toggle>
+                <mat-datepicker #dobPicker></mat-datepicker>
+                <mat-error *ngIf="patientDetailsForm.get('dateOfBirth')?.hasError('required')">DOB is required</mat-error>
+              </mat-form-field>
+
+              <!-- Age -->
+              <mat-form-field appearance="outline" class="col-age">
+                <mat-label>Age (Yrs) *</mat-label>
+                <input matInput type="number" formControlName="age" min="0" max="150" required>
+                <mat-icon matPrefix>cake</mat-icon>
+                <mat-error *ngIf="patientDetailsForm.get('age')?.hasError('required')">Age is required</mat-error>
+              </mat-form-field>
+
+              <!-- Aadhaar -->
+              <mat-form-field appearance="outline" class="col-adhar">
+                <mat-label>Aadhaar / National ID *</mat-label>
+                <input matInput formControlName="adharNumber" placeholder="1234-5678-9012" required>
+                <mat-icon matPrefix>fingerprint</mat-icon>
+                <mat-error *ngIf="patientDetailsForm.get('adharNumber')?.hasError('required')">Aadhaar is required</mat-error>
+              </mat-form-field>
+            </div>
+
+            <!-- Section 2: Contact Details -->
+            <div class="form-section-header">
+              <div class="section-badge-icon">
+                <mat-icon>contact_mail</mat-icon>
+              </div>
+              <div class="section-title-wrap">
+                <h3>Contact Information</h3>
+                <p>Primary email and phone number for clinical notifications and alerts</p>
+              </div>
+            </div>
+
+            <div class="form-grid-row contact-row-grid">
+              <mat-form-field appearance="outline" class="col-half">
+                <mat-label>Email Address *</mat-label>
+                <input matInput formControlName="email" type="email" placeholder="patient@example.com" required>
+                <mat-icon matPrefix>email</mat-icon>
+                <mat-error *ngIf="patientDetailsForm.get('email')?.hasError('required')">Email is required</mat-error>
+                <mat-error *ngIf="patientDetailsForm.get('email')?.hasError('email')">Invalid email address</mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="col-half">
+                <mat-label>Phone Number *</mat-label>
+                <input matInput formControlName="phoneNumber" placeholder="+91 9876543210" required>
+                <mat-icon matPrefix>phone</mat-icon>
+                <mat-error *ngIf="patientDetailsForm.get('phoneNumber')?.hasError('required')">Phone is required</mat-error>
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              <button mat-button class="btn-cancel" type="button" (click)="setActiveTab(0)">Cancel</button>
+              <button class="btn-save-primary" type="submit" [disabled]="patientDetailsForm.invalid || isSubmitting">
+                <mat-icon *ngIf="!isSubmitting">save</mat-icon>
+                <span *ngIf="!isSubmitting">Save Profile Details</span>
+                <span *ngIf="isSubmitting">Saving Profile...</span>
+              </button>
+            </div>
+          </form>
+        </mat-card>
+      </div>
+
+    </main>
+  </div>
+</div>
+  <!-- 1. PATIENT AI HEALTH SUMMARY MODAL -->
+  <div *ngIf="showAiSummaryModal" class="ai-modal-backdrop" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+    <div class="ai-modal-card" style="background: white; width: 100%; max-width: 820px; max-height: 85vh; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); display: flex; flex-direction: column; overflow: hidden; border: 1px solid #e2e8f0;">
+      
+      <!-- Modal Header -->
+      <div style="padding: 18px 24px; background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%); color: white; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <mat-icon style="color: #bae6fd;">favorite</mat-icon>
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700;">My Health & Care Summary</h3>
+            <span style="font-size: 0.82rem; opacity: 0.9;">Grounded in your medical records & latest visit vitals</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span *ngIf="isAiGeneratingSummary" style="font-size: 0.75rem; background: #075985; color: #bae6fd; padding: 3px 10px; border-radius: 999px;">Streaming Live...</span>
+          <button mat-icon-button (click)="closeAiSummaryModal()" style="color: white;">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Body -->
+      <div style="padding: 24px; overflow-y: auto; flex: 1; background: #f8fafc;">
+        <div *ngIf="aiSummaryError" style="color: #dc2626; padding: 12px; background: #fee2e2; border-radius: 8px; margin-bottom: 12px;">
+          <mat-icon style="vertical-align: middle; font-size: 18px;">error</mat-icon> {{ aiSummaryError }}
+        </div>
+
+        <div *ngIf="!aiPatientSummary && isAiGeneratingSummary" style="display: flex; align-items: center; gap: 12px; padding: 20px 0; color: #475569;">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Reviewing your medical conditions, doctor consultations, and vitals...</span>
+        </div>
+
+        <div *ngIf="aiPatientSummary" class="ai-summary-rendered-content" [innerHTML]="renderedAiPatientSummary" style="background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; line-height: 1.65;"></div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div style="padding: 14px 24px; background: white; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end;">
+        <button mat-flat-button color="primary" (click)="closeAiSummaryModal()">Got it, Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. PATIENT INTERACTIVE AI QUERY & CHAT MODAL -->
+  <div *ngIf="showAiChatModal" class="ai-modal-backdrop" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+    <div class="ai-modal-card" style="background: white; width: 100%; max-width: 800px; max-height: 85vh; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); display: flex; flex-direction: column; overflow: hidden; border: 1px solid #e2e8f0;">
+      
+      <!-- Modal Header -->
+      <div style="padding: 18px 24px; background: linear-gradient(135deg, #6d28d9 0%, #7c3aed 100%); color: white; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <mat-icon style="color: #ddd6fe;">question_answer</mat-icon>
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700;">Ask AI Health Assistant</h3>
+            <span style="font-size: 0.82rem; opacity: 0.9;">Ask questions about your health, appointments, or medications</span>
+          </div>
+        </div>
+        <button mat-icon-button (click)="closeAiChatModal()" style="color: white;">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div style="padding: 24px; overflow-y: auto; flex: 1; background: #f8fafc;">
+        
+        <!-- Query Input Box -->
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+          <input type="text" [(ngModel)]="userQuery" (keyup.enter)="askAiQuery()" placeholder="Type your health question (e.g. Can I drink water before fasting blood test?)..." style="flex: 1; padding: 14px 18px; border-radius: 12px; border: 1.5px solid #cbd5e1; outline: none; font-size: 0.95rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02);" />
+          <button mat-flat-button color="primary" (click)="askAiQuery()" [disabled]="isAiChatting || !userQuery.trim()" style="padding: 0 24px; border-radius: 12px; font-weight: 600;">
+            <mat-icon>send</mat-icon> Ask
+          </button>
+        </div>
+
+        <div *ngIf="aiChatError" style="color: #dc2626; padding: 12px; background: #fee2e2; border-radius: 8px; margin-bottom: 12px;">
+          <mat-icon style="vertical-align: middle; font-size: 18px;">error</mat-icon> {{ aiChatError }}
+        </div>
+
+        <div *ngIf="!aiChatAnswer && isAiChatting" style="display: flex; align-items: center; gap: 12px; padding: 20px 0; color: #475569;">
+          <mat-spinner diameter="26"></mat-spinner>
+          <span>Consulting your medical chart and hospital guidance...</span>
+        </div>
+
+        <div *ngIf="aiChatAnswer" class="ai-summary-rendered-content" [innerHTML]="renderedAiChatAnswer" style="background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; line-height: 1.65;"></div>
+
+        <div *ngIf="!aiChatAnswer && !isAiChatting" style="text-align: center; padding: 40px 20px; color: #94a3b8;">
+          <mat-icon style="font-size: 48px; width: 48px; height: 48px; color: #cbd5e1; margin-bottom: 8px;">forum</mat-icon>
+          <p style="margin: 0; font-size: 0.95rem;">You can ask about upcoming appointments, general preparation rules, or your recorded vitals.</p>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div style="padding: 14px 24px; background: white; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end;">
+        <button mat-stroked-button (click)="closeAiChatModal()">Close</button>
+      </div>
+    </div>
+  </div>

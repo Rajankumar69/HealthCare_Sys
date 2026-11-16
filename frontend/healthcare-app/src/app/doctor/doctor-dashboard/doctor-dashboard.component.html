@@ -1,0 +1,629 @@
+    <div class="dashboard-layout">
+      <!-- TOP NAVBAR -->
+      <mat-toolbar color="primary" class="main-navbar">
+        <div class="nav-left">
+          <span class="material-icons logo-icon">medical_services</span>
+          <span class="portal-title">Doctor Portal (Admin)</span>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="nav-links">
+          <button mat-button [class.active-link]="currentView === 'appointments'" (click)="setView('appointments')">
+            <mat-icon>event_available</mat-icon>
+            Appointments
+            <span class="counter-badge" *ngIf="newAppointments.length > 0">{{ newAppointments.length }}</span>
+          </button>
+
+          <button mat-button [class.active-link]="currentView === 'rescheduled'" (click)="setView('rescheduled')">
+            <mat-icon>update</mat-icon>
+            Rescheduled Appointments
+            <span class="counter-badge yellow" *ngIf="rescheduledAppointments.length > 0">{{ rescheduledAppointments.length }}</span>
+          </button>
+
+          <button mat-button [class.active-link]="currentView === 'my-patients'" (click)="setView('my-patients')">
+            <mat-icon>people</mat-icon>
+            My Patients
+          </button>
+
+          <button mat-button [class.active-link]="currentView === 'leave'" (click)="setView('leave')">
+            <mat-icon>event_busy</mat-icon>
+            Leave Management
+            <span class="counter-badge yellow" *ngIf="(futureLeaves.length + shortLeaves.length) > 0">{{ futureLeaves.length + shortLeaves.length }}</span>
+          </button>
+        </div>
+
+        <!-- User Profile Dropdown -->
+        <div class="nav-right">
+          <button mat-button [matMenuTriggerFor]="profileMenu" class="profile-btn">
+            <div class="profile-chip">
+              <span class="material-icons avatar-icon">account_circle</span>
+              <div class="profile-meta">
+                <span class="user-name">{{ currentUser?.fullName || 'Dr. Sarah Johnson' }}</span>
+                <span class="user-role">{{ currentUser?.role }}</span>
+              </div>
+              <mat-icon class="dropdown-arrow">arrow_drop_down</mat-icon>
+            </div>
+          </button>
+
+          <mat-menu #profileMenu="matMenu">
+            <div class="menu-profile-card">
+              <p class="menu-name">{{ currentUser?.fullName }}</p>
+              <p class="menu-email">{{ currentUser?.email }}</p>
+              <span class="badge-role">{{ currentUser?.role }} {{ currentUser?.departmentName ? '• ' + currentUser?.departmentName : '' }}</span>
+            </div>
+            <mat-divider></mat-divider>
+            <button mat-menu-item (click)="openEditProfileModal()">
+              <mat-icon color="primary">edit</mat-icon>
+              <span>Edit Profile Details</span>
+            </button>
+            <button mat-menu-item (click)="setView('leave')">
+              <mat-icon color="primary">event_busy</mat-icon>
+              <span>Apply / Manage Leave</span>
+            </button>
+            <mat-divider></mat-divider>
+            <button mat-menu-item (click)="logout()">
+              <mat-icon color="warn">logout</mat-icon>
+              <span>Sign Out</span>
+            </button>
+          </mat-menu>
+        </div>
+      </mat-toolbar>
+
+      <div class="dashboard-body">
+        <!-- DOCTOR SIDEBAR -->
+        <aside class="doctor-sidebar">
+          <div class="doctor-card">
+            <div class="doctor-photo-wrapper">
+              <div class="doctor-avatar-circle">
+                <mat-icon class="doctor-avatar-icon">medical_services</mat-icon>
+              </div>
+              <div class="online-indicator"></div>
+            </div>
+            
+            <h3 class="doc-name">{{ currentUser?.fullName || 'Dr. Sarah Johnson' }}</h3>
+            <p class="doc-title">{{ currentUser?.jobTitle || ((currentUser?.departmentName || 'General Medicine') + ' Specialist') }}</p>
+            <span class="doc-dept-badge">{{ currentUser?.departmentName || 'General Medicine' }}</span>
+
+            <div class="doc-info-list">
+              <div class="info-item">
+                <span class="material-icons">badge</span>
+                <span>Doctor ID: #DOC-{{ currentUser?.userId || 101 }}</span>
+              </div>
+              <div class="info-item">
+                <span class="material-icons">mail</span>
+                <span>{{ currentUser?.email || 'doctor@hospital.com' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="material-icons">phone</span>
+                <span>{{ currentUser?.phoneNumber || 'Not provided' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="material-icons">schedule</span>
+                <span>{{ currentUser?.workSchedule || 'Mon - Fri (09:00 AM - 05:00 PM)' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="material-icons">room</span>
+                <span>{{ currentUser?.workLocation || 'Room 402, Wing B' }}</span>
+              </div>
+            </div>
+
+            <button type="button" mat-stroked-button class="btn-edit-profile" (click)="openEditProfileModal()">
+              <mat-icon>edit</mat-icon>
+              <span>Edit Details</span>
+            </button>
+          </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="main-content">
+
+          <!-- VIEW 1: MY PATIENTS (PAGINATED WITH SOFT DELETE & 3-SECTION DETAILS) -->
+          <div *ngIf="currentView === 'my-patients'" class="content-section">
+            <div class="section-top">
+              <div>
+                <h2>Patient Directory</h2>
+                <p class="sub">Click on any patient row to open the 3-section details (Details, Vitals, Medical History).</p>
+              </div>
+              
+              <div class="search-box">
+                <mat-form-field appearance="outline" class="search-input">
+                  <mat-label>Search patients...</mat-label>
+                  <input matInput [(ngModel)]="searchTerm" (keyup.enter)="onSearch()" (input)="onSearchInput()" placeholder="Search by name, ID, phone, Aadhaar, symptoms...">
+                  <button mat-icon-button matSuffix *ngIf="searchTerm" (click)="clearSearch()" title="Clear Search">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                  <button mat-icon-button matSuffix (click)="onSearch()" title="Search">
+                    <mat-icon>search</mat-icon>
+                  </button>
+                </mat-form-field>
+              </div>
+            </div>
+
+            <mat-card class="table-card">
+              <!-- Loading Spinner -->
+              <div *ngIf="isLoadingPatients" class="loading-state-box">
+                <mat-spinner diameter="36"></mat-spinner>
+                <p>Loading patient directory from database...</p>
+              </div>
+
+              <!-- Connection Error State with Retry Button -->
+              <div *ngIf="patientLoadError && !isLoadingPatients" class="error-banner">
+                <mat-icon color="warn">cloud_off</mat-icon>
+                <div class="err-text">
+                  <strong>Backend Connection Issue</strong>
+                  <p>{{ patientLoadError }}</p>
+                </div>
+                <button mat-stroked-button color="primary" (click)="loadPatients()">
+                  <mat-icon>refresh</mat-icon> Retry
+                </button>
+              </div>
+
+              <!-- Patient Table (Shown when not loading and no error) -->
+              <div *ngIf="!isLoadingPatients && !patientLoadError">
+                <table mat-table [dataSource]="patients" class="w-100 patient-table">
+                  <ng-container matColumnDef="id">
+                    <th mat-header-cell *matHeaderCellDef class="col-id">ID</th>
+                    <td mat-cell *matCellDef="let p" class="col-id cell-id">#{{ p.patientID }}</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="name">
+                    <th mat-header-cell *matHeaderCellDef class="col-name">Patient Name</th>
+                    <td mat-cell *matCellDef="let p" class="col-name clickable-name" (click)="navigateToPatientDetails(p.patientID)">
+                      <strong>{{ p.prefix }} {{ p.firstName }} {{ p.lastName }}</strong>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="contact">
+                    <th mat-header-cell *matHeaderCellDef class="col-contact">Contact & Email</th>
+                    <td mat-cell *matCellDef="let p" class="col-contact">
+                      <div class="contact-phone">{{ p.phoneNumber }}</div>
+                      <div class="contact-email">{{ p.email }}</div>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="adhar">
+                    <th mat-header-cell *matHeaderCellDef class="col-adhar">Aadhaar / ID</th>
+                    <td mat-cell *matCellDef="let p" class="col-adhar cell-adhar">{{ p.adharNumber }}</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="age">
+                    <th mat-header-cell *matHeaderCellDef class="col-age">Age / DOB</th>
+                    <td mat-cell *matCellDef="let p" class="col-age cell-age">{{ p.age }} yrs ({{ p.dateOfBirth | date:'yyyy' }})</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="problem">
+                    <th mat-header-cell *matHeaderCellDef class="col-problem">Chief Complaint</th>
+                    <td mat-cell *matCellDef="let p" class="col-problem">
+                      <span class="problem-pill">{{ p.problem || 'General Checkup' }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef class="col-actions th-actions">Actions</th>
+                    <td mat-cell *matCellDef="let p" class="col-actions td-actions">
+                      <div class="actions-group">
+                        <button mat-flat-button color="accent" class="btn-ai-summary" (click)="openAiSummary(p)" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; margin-right: 8px; border-radius: 8px;"><mat-icon>auto_awesome</mat-icon><span>AI Summary</span></button>
+                        <button mat-flat-button class="btn-view-chart" (click)="navigateToPatientDetails(p.patientID)">
+                          <mat-icon>visibility</mat-icon>
+                          <span>View Details</span>
+                        </button>
+                        <!-- Soft Delete Button (Doctor Admin only) -->
+                        <button mat-icon-button color="warn" class="btn-delete" title="Soft Delete Patient" (click)="confirmSoftDelete(p)">
+                          <mat-icon>delete_outline</mat-icon>
+                        </button>
+                      </div>
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="patientColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: patientColumns;"></tr>
+                </table>
+
+                <div *ngIf="patients.length === 0" class="empty-directory-box">
+                  <mat-icon>person_search</mat-icon>
+                  <h4>No Patients Found</h4>
+                  <p>No active patient records match your search criteria.</p>
+                </div>
+
+                <mat-paginator
+                  [length]="totalPatients"
+                  [pageSize]="pageSize"
+                  [pageIndex]="pageNumber - 1"
+                  [pageSizeOptions]="[5, 10, 25, 50]"
+                  (page)="onPageChange($event)">
+                </mat-paginator>
+              </div>
+            </mat-card>
+          </div>
+
+          <!-- VIEW 2: APPOINTMENTS -->
+          <div *ngIf="currentView === 'appointments'" class="content-section">
+            <div class="section-top">
+              <div>
+                <h2>Appointments</h2>
+                <p class="sub">Scheduled consultations and active appointments on your clinical calendar.</p>
+              </div>
+            </div>
+
+            <div class="appointment-cards-grid">
+              <div *ngFor="let appt of newAppointments" class="appt-card confirmed-border">
+                <div class="appt-header">
+                  <div>
+                    <span class="badge-status" [ngClass]="getStatusClass(appt.status)">{{ appt.status === 'Approved' ? 'Confirmed' : appt.status }}</span>
+                    <h3>{{ appt.patientName }}</h3>
+                  </div>
+                  <span class="appt-date-chip">{{ appt.appointmentDate | date:'mediumDate' }} {{ appt.appointmentTime }}</span>
+                </div>
+
+                <div class="appt-details">
+                  <p><strong>Reason:</strong> {{ appt.reason || 'Regular checkup' }}</p>
+                  <p *ngIf="appt.notes"><strong>Clinical Notes:</strong> {{ appt.notes }}</p>
+                </div>
+
+                <div class="appt-actions">
+                  <button mat-stroked-button color="primary" (click)="viewPatientById(appt.patientId, appt.appointmentId)">
+                    <mat-icon>medical_information</mat-icon> Open Patient Medical Chart
+                  </button>
+                </div>
+              </div>
+
+              <div *ngIf="newAppointments.length === 0" class="empty-card">
+                <span class="material-icons">event_busy</span>
+                <p>No appointments found on your schedule.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- VIEW 4: RESCHEDULED APPOINTMENTS -->
+          <div *ngIf="currentView === 'rescheduled'" class="content-section">
+            <div class="section-top">
+              <div>
+                <h2>Rescheduled Appointments</h2>
+                <p class="sub">Appointments updated with modified time slots or dates.</p>
+              </div>
+            </div>
+
+            <div class="appointment-cards-grid">
+              <div *ngFor="let appt of rescheduledAppointments" class="appt-card rescheduled-border">
+                <div class="appt-header">
+                  <div>
+                    <span class="badge-status status-rescheduled">Rescheduled</span>
+                    <h3>{{ appt.patientName }}</h3>
+                  </div>
+                  <span class="appt-date-chip">{{ appt.appointmentDate | date:'mediumDate' }} at {{ appt.appointmentTime }}</span>
+                </div>
+
+                <div class="appt-details">
+                  <p><strong>Reason:</strong> {{ appt.reason }}</p>
+                  <p *ngIf="appt.notes"><strong>Reschedule Details:</strong> {{ appt.notes }}</p>
+                </div>
+
+                <div class="appt-actions doctor-reschedule-actions">
+                  <button mat-flat-button color="primary" class="btn-confirm-reschedule" (click)="confirmDoctorAppointment(appt)">
+                    <mat-icon>check_circle</mat-icon> Confirm
+                  </button>
+                  <button mat-flat-button color="warn" class="btn-cancel-reschedule" (click)="cancelDoctorAppointment(appt)">
+                    <mat-icon>cancel</mat-icon> Cancel
+                  </button>
+                </div>
+              </div>
+
+              <div *ngIf="rescheduledAppointments.length === 0" class="empty-card">
+                <span class="material-icons">done_all</span>
+                <p>No rescheduled appointments requiring attention.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- VIEW 5: DOCTOR LEAVE MANAGEMENT -->
+          <div *ngIf="currentView === 'leave'" class="content-section leave-section">
+            <div class="leave-header-bar">
+              <div class="header-text-group">
+                <div class="title-with-pill">
+                  <h2>Doctor Leave Management</h2>
+                  <span class="live-sync-indicator">
+                    <span class="pulse-dot"></span> Real-Time Clinic Sync Active
+                  </span>
+                </div>
+                <p class="sub">Apply for future scheduled leaves or short / half-day leaves. The Front Desk consultation calendar and nursing reschedule systems automatically lock slots during your leaves.</p>
+              </div>
+
+              <!-- Subtab navigation pills -->
+              <div class="leave-subtabs-nav">
+                <button type="button" class="subtab-btn" [class.active-subtab]="leaveSubTab === 'future'" (click)="setLeaveSubTab('future')">
+                  <mat-icon>date_range</mat-icon>
+                  <span>Future Leave (Full Day)</span>
+                  <span class="subtab-count" *ngIf="futureLeaves.length > 0">{{ futureLeaves.length }}</span>
+                </button>
+                <button type="button" class="subtab-btn" [class.active-subtab]="leaveSubTab === 'short'" (click)="setLeaveSubTab('short')">
+                  <mat-icon>timelapse</mat-icon>
+                  <span>Short & Half-Day Leave</span>
+                  <span class="subtab-count" *ngIf="shortLeaves.length > 0">{{ shortLeaves.length }}</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- SUBTAB 1: FUTURE LEAVE (Full Day / Date Range) -->
+            <div *ngIf="leaveSubTab === 'future'" class="leave-subtab-container">
+              <div class="leave-grid-layout">
+                <!-- Apply Form Card -->
+                <div class="leave-form-card">
+                  <div class="card-header-strip">
+                    <div class="strip-icon"><mat-icon>edit_calendar</mat-icon></div>
+                    <div>
+                      <h3>Apply for Future Leave</h3>
+                      <p>Select your date range and clinical leave category</p>
+                    </div>
+                  </div>
+                  <form (ngSubmit)="applyFutureLeave()" class="leave-form">
+                    <div class="form-row-2">
+                      <div class="form-field">
+                        <label class="field-label"><mat-icon>today</mat-icon> From Date *</label>
+                        <input type="date" [(ngModel)]="futureStartDate" name="futureStartDate" class="custom-date-input" [min]="minLeaveDate" required (change)="onFutureStartDateChange()">
+                      </div>
+                      <div class="form-field">
+                        <label class="field-label"><mat-icon>event</mat-icon> To Date *</label>
+                        <input type="date" [(ngModel)]="futureEndDate" name="futureEndDate" class="custom-date-input" [min]="futureStartDate || minLeaveDate" required>
+                      </div>
+                    </div>
+
+                    <div class="form-field">
+                      <label class="field-label"><mat-icon>category</mat-icon> Leave Type *</label>
+                      <select [(ngModel)]="futureLeaveType" name="futureLeaveType" class="custom-select" required>
+                        <option value="Annual Leave">🌴 Annual Leave / Vacation</option>
+                        <option value="Medical Leave">🏥 Medical / Sick Leave</option>
+                        <option value="Casual Leave">☕ Casual Leave</option>
+                        <option value="Conference / CME">🎓 Academic Conference / CME Summit</option>
+                        <option value="Emergency / Personal">🚨 Emergency / Personal Matter</option>
+                      </select>
+                    </div>
+
+                    <div class="form-field">
+                      <label class="field-label"><mat-icon>notes</mat-icon> Reason & Clinical Notes *</label>
+                      <textarea [(ngModel)]="futureReason" name="futureReason" rows="3" class="custom-textarea" placeholder="e.g. Attending Annual Cardiology Summit, Family emergency..." required></textarea>
+                    </div>
+
+                    <div class="form-submit-row">
+                      <button type="submit" mat-flat-button color="primary" class="btn-submit-leave" [disabled]="isSubmittingLeave || !futureStartDate || !futureEndDate || !futureReason.trim()">
+                        <mat-spinner diameter="18" *ngIf="isSubmittingLeave"></mat-spinner>
+                        <mat-icon *ngIf="!isSubmittingLeave">send</mat-icon>
+                        <span>{{ isSubmittingLeave ? 'Submitting...' : 'Apply Future Leave' }}</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                <!-- Existing Future Leaves List -->
+                <div class="leave-records-card">
+                  <div class="card-header-strip">
+                    <div class="strip-icon alt"><mat-icon>history</mat-icon></div>
+                    <div>
+                      <h3>My Scheduled Future Leaves ({{ futureLeaves.length }})</h3>
+                      <p>Active leave records automatically synchronizing with Front Desk & Nurse</p>
+                    </div>
+                  </div>
+
+                  <div *ngIf="futureLeaves.length === 0" class="empty-leaves-state">
+                    <mat-icon>event_available</mat-icon>
+                    <h4>No Future Leaves Scheduled</h4>
+                    <p>You have not applied for any upcoming full-day leaves. Use the form on the left to submit a request.</p>
+                  </div>
+
+                  <div class="leave-cards-list" *ngIf="futureLeaves.length > 0">
+                    <div class="leave-item-card" *ngFor="let leave of futureLeaves">
+                      <div class="leave-item-top">
+                        <span class="leave-type-pill">{{ leave.leaveType }}</span>
+                        <span class="leave-status-pill approved">{{ leave.status }}</span>
+                      </div>
+                      <div class="leave-date-range">
+                        <mat-icon>date_range</mat-icon>
+                        <strong>{{ leave.startDate | date:'mediumDate' }}</strong>
+                        <span class="range-arrow">&rarr;</span>
+                        <strong>{{ leave.endDate | date:'mediumDate' }}</strong>
+                      </div>
+                      <p class="leave-reason-text">"{{ leave.reason }}"</p>
+                      <div class="leave-item-bottom">
+                        <span class="applied-time">Applied on {{ leave.createdAt | date:'shortDate' }}</span>
+                        <button type="button" mat-button color="warn" class="btn-cancel-leave" (click)="cancelDoctorLeave(leave.leaveId)">
+                          <mat-icon>cancel</mat-icon> Cancel Leave
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SUBTAB 2: SHORT LEAVE / HALF-DAY LEAVE -->
+            <div *ngIf="leaveSubTab === 'short'" class="leave-subtab-container">
+              <div class="leave-grid-layout">
+                <!-- Apply Form Card -->
+                <div class="leave-form-card">
+                  <div class="card-header-strip">
+                    <div class="strip-icon"><mat-icon>timelapse</mat-icon></div>
+                    <div>
+                      <h3>Apply for Short or Half-Day Leave</h3>
+                      <p>Block out specific morning, afternoon, or hourly slots</p>
+                    </div>
+                  </div>
+                  <form (ngSubmit)="applyShortLeave()" class="leave-form">
+                    <div class="form-field">
+                      <label class="field-label"><mat-icon>today</mat-icon> Leave Date *</label>
+                      <input type="date" [(ngModel)]="shortDate" name="shortDate" class="custom-date-input" [min]="minLeaveDate" required>
+                    </div>
+
+                    <div class="form-field">
+                      <label class="field-label"><mat-icon>schedule</mat-icon> Leave Session & Duration *</label>
+                      <div class="session-radio-group">
+                        <label class="session-radio-option" [class.selected]="shortLeaveMode === 'half-morning'">
+                          <input type="radio" name="shortLeaveMode" [(ngModel)]="shortLeaveMode" value="half-morning">
+                          <div class="radio-content">
+                            <div class="radio-title-row">
+                              <strong>🌅 Half Day (Morning)</strong>
+                              <span class="badge-time">09:00 AM &ndash; 01:00 PM</span>
+                            </div>
+                            <span class="radio-sub">Afternoon consultation slots remain open</span>
+                          </div>
+                        </label>
+                        <label class="session-radio-option" [class.selected]="shortLeaveMode === 'half-afternoon'">
+                          <input type="radio" name="shortLeaveMode" [(ngModel)]="shortLeaveMode" value="half-afternoon">
+                          <div class="radio-content">
+                            <div class="radio-title-row">
+                              <strong>🌇 Half Day (Afternoon)</strong>
+                              <span class="badge-time">02:00 PM &ndash; 05:00 PM</span>
+                            </div>
+                            <span class="radio-sub">Morning consultation slots remain open</span>
+                          </div>
+                        </label>
+                        <label class="session-radio-option" [class.selected]="shortLeaveMode === 'short-custom'">
+                          <input type="radio" name="shortLeaveMode" [(ngModel)]="shortLeaveMode" value="short-custom">
+                          <div class="radio-content">
+                            <div class="radio-title-row">
+                              <strong>⏱️ Short Leave (Custom Hours)</strong>
+                              <span class="badge-time">Select Time Interval</span>
+                            </div>
+                            <span class="radio-sub">Block specific clinical hours or department rounds</span>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+
+                    <!-- Custom time inputs when short-custom selected -->
+                    <div class="form-row-2" *ngIf="shortLeaveMode === 'short-custom'">
+                      <div class="form-field">
+                        <label class="field-label"><mat-icon>alarm</mat-icon> Start Time</label>
+                        <select [(ngModel)]="shortStartTime" name="shortStartTime" class="custom-select">
+                          <option value="09:00 AM">09:00 AM</option>
+                          <option value="10:00 AM">10:00 AM</option>
+                          <option value="11:00 AM">11:00 AM</option>
+                          <option value="12:00 PM">12:00 PM</option>
+                          <option value="02:00 PM">02:00 PM</option>
+                          <option value="03:00 PM">03:00 PM</option>
+                          <option value="04:00 PM">04:00 PM</option>
+                        </select>
+                      </div>
+                      <div class="form-field">
+                        <label class="field-label"><mat-icon>alarm_on</mat-icon> End Time</label>
+                        <select [(ngModel)]="shortEndTime" name="shortEndTime" class="custom-select">
+                          <option value="10:00 AM">10:00 AM</option>
+                          <option value="11:00 AM">11:00 AM</option>
+                          <option value="12:00 PM">12:00 PM</option>
+                          <option value="01:00 PM">01:00 PM</option>
+                          <option value="03:00 PM">03:00 PM</option>
+                          <option value="04:00 PM">04:00 PM</option>
+                          <option value="05:00 PM">05:00 PM</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="form-field">
+                      <label class="field-label"><mat-icon>notes</mat-icon> Reason for Short Leave *</label>
+                      <textarea [(ngModel)]="shortReason" name="shortReason" rows="3" class="custom-textarea" placeholder="e.g. Clinical case review, emergency department round, personal task..." required></textarea>
+                    </div>
+
+                    <div class="form-submit-row">
+                      <button type="submit" mat-flat-button color="primary" class="btn-submit-leave" [disabled]="isSubmittingLeave || !shortDate || !shortReason.trim()">
+                        <mat-spinner diameter="18" *ngIf="isSubmittingLeave"></mat-spinner>
+                        <mat-icon *ngIf="!isSubmittingLeave">send</mat-icon>
+                        <span>{{ isSubmittingLeave ? 'Submitting...' : 'Apply Short Leave' }}</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                <!-- Existing Short Leaves List -->
+                <div class="leave-records-card">
+                  <div class="card-header-strip">
+                    <div class="strip-icon alt"><mat-icon>history</mat-icon></div>
+                    <div>
+                      <h3>My Short & Half-Day Leaves ({{ shortLeaves.length }})</h3>
+                      <p>Session-based leaves currently blocking slot bookings</p>
+                    </div>
+                  </div>
+
+                  <div *ngIf="shortLeaves.length === 0" class="empty-leaves-state">
+                    <mat-icon>hourglass_empty</mat-icon>
+                    <h4>No Short Leaves Scheduled</h4>
+                    <p>You have not applied for any half-day or short leave sessions.</p>
+                  </div>
+
+                  <div class="leave-cards-list" *ngIf="shortLeaves.length > 0">
+                    <div class="leave-item-card" *ngFor="let leave of shortLeaves">
+                      <div class="leave-item-top">
+                        <span class="leave-type-pill short">{{ leave.leaveCategory === 'half-day' ? 'Half Day (' + leave.halfDaySession + ')' : 'Short Leave' }}</span>
+                        <span class="leave-status-pill approved">{{ leave.status }}</span>
+                      </div>
+                      <div class="leave-date-range">
+                        <mat-icon>event</mat-icon>
+                        <strong>{{ leave.startDate | date:'fullDate' }}</strong>
+                      </div>
+                      <div class="session-hours-chip" *ngIf="leave.startTime && leave.endTime">
+                        <mat-icon>schedule</mat-icon> {{ leave.startTime }} &ndash; {{ leave.endTime }}
+                      </div>
+                      <p class="leave-reason-text">"{{ leave.reason }}"</p>
+                      <div class="leave-item-bottom">
+                        <span class="applied-time">Applied on {{ leave.createdAt | date:'shortDate' }}</span>
+                        <button type="button" mat-button color="warn" class="btn-cancel-leave" (click)="cancelDoctorLeave(leave.leaveId)">
+                          <mat-icon>cancel</mat-icon> Cancel Leave
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </main>
+      </div>
+    </div>
+      <!-- AI CLINICAL BRIEF MODAL / OVERLAY FOR DOCTOR -->
+      <div *ngIf="showAiModal" class="ai-modal-backdrop" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+        <div class="ai-modal-card" style="background: white; width: 100%; max-width: 850px; max-height: 85vh; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); display: flex; flex-direction: column; overflow: hidden; border: 1px solid #e2e8f0;">
+          
+          <!-- Modal Header -->
+          <div style="padding: 18px 24px; background: linear-gradient(135deg, #065f46 0%, #047857 100%); color: white; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <mat-icon style="color: #6ee7b7;">psychology</mat-icon>
+              <div>
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700;">Clinical Briefing Copilot (GPT-OSS 120B)</h3>
+                <span style="font-size: 0.82rem; opacity: 0.9;">Patient: {{ selectedPatientForAi?.prefix }} {{ selectedPatientForAi?.firstName }} {{ selectedPatientForAi?.lastName }} (ID: #{{ selectedPatientForAi?.patientID }})</span>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span *ngIf="isAiGenerating" style="font-size: 0.75rem; background: #064e3b; color: #a7f3d0; padding: 3px 10px; border-radius: 999px;">Streaming Live...</span>
+              <button mat-icon-button (click)="closeAiModal()" style="color: white;">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <!-- Modal Body -->
+          <div style="padding: 24px; overflow-y: auto; flex: 1; background: #f8fafc;">
+            <div *ngIf="aiError" style="color: #dc2626; padding: 12px; background: #fee2e2; border-radius: 8px; margin-bottom: 12px;">
+              <mat-icon style="vertical-align: middle; font-size: 18px;">error</mat-icon> {{ aiError }}
+            </div>
+
+            <div *ngIf="!aiSummary && isAiGenerating" style="display: flex; align-items: center; gap: 12px; padding: 20px 0; color: #475569;">
+              <mat-spinner diameter="28"></mat-spinner>
+              <span>Pulling medical history, vitals timeline, and synthesizing clinical summary...</span>
+            </div>
+
+            <div *ngIf="aiSummary" class="ai-summary-rendered-content" [innerHTML]="renderedAiSummary" style="background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; line-height: 1.65;"></div>
+          </div>
+
+          <!-- Modal Footer -->
+          <div style="padding: 14px 24px; background: white; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px;">
+            <button mat-stroked-button (click)="closeAiModal()">Close</button>
+            <button mat-flat-button color="primary" (click)="navigateToPatientDetails(selectedPatientForAi?.patientID!)">Open Full Medical Chart</button>
+          </div>
+        </div>
+      </div>
+
+      <app-edit-staff-profile-modal
+        [isOpen]="showEditProfileModal"
+        [user]="currentUser"
+        theme="doctor"
+        (closed)="closeEditProfileModal()"
+        (saved)="onProfileSaved($event)">
+      </app-edit-staff-profile-modal>

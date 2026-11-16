@@ -1,0 +1,582 @@
+// ============================================================================
+// MODERN SPLIT-SCREEN AUTHENTICATION STYLES (MEDIGRAPH / HEALTHCARE INSPIRATION)
+// ============================================================================
+
+:host {
+  display: block;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.split-auth-container {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  background-color: #ffffff;
+  overflow: hidden;
+
+  @media (max-width: 960px) {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 1. LEFT HERO PANE (Doctor Visual Branding)
+// ----------------------------------------------------------------------------
+.brand-hero-pane {
+  flex: 1;
+  position: relative;
+  background-image: url('/images/doctor-banner.jpg');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 48px;
+  overflow: hidden;
+  color: #ffffff;
+
+  // Dark & Blue Soft Gradient Overlay over the Doctor photo
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg, 
+      rgba(15, 23, 42, 0.25) 0%, 
+      rgba(2, 132, 199, 0.40) 50%, 
+      rgba(15, 23, 42, 0.88) 100%
+    );
+    backdrop-filter: blur(0.5px);
+    z-index: 1;
+  }
+
+  // Content layers above overlay
+  .hero-top,
+  .hero-center-content,
+  .hero-bottom {
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero-top {
+    .portal-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: #ffffff;
+
+      .badge-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #38bdf8;
+        box-shadow: 0 0 10px #38bdf8;
+      }
+    }
+  }
+
+  .hero-center-content {
+    .trust-card {
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 16px;
+      max-width: 380px;
+      box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.4);
+
+      .trust-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #0284c7, #38bdf8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+
+        mat-icon {
+          color: #ffffff;
+          font-size: 24px;
+        }
+      }
+
+      .trust-text {
+        h5 {
+          margin: 0 0 4px;
+          font-size: 0.95rem;
+          font-weight: 700;
+          color: #ffffff;
+        }
+
+        p {
+          margin: 0;
+          font-size: 0.8rem;
+          color: #cbd5e1;
+          line-height: 1.35;
+        }
+      }
+    }
+
+    @media (max-width: 1200px) {
+      display: none;
+    }
+  }
+
+  .hero-bottom {
+    .brand-capsule {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+
+      .capsule-icon {
+        width: 48px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+
+        svg {
+          width: 100%;
+          height: 100%;
+          filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+        }
+      }
+
+      .brand-title {
+        font-size: 1.5rem;
+        font-weight: 900;
+        letter-spacing: 2px;
+        color: #ffffff;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      }
+    }
+
+    .hero-quote {
+      margin: 0 0 20px;
+      font-size: 1.15rem;
+      font-weight: 400;
+      line-height: 1.5;
+      color: #e2e8f0;
+      max-width: 440px;
+
+      span {
+        font-weight: 600;
+        color: #ffffff;
+      }
+    }
+
+    .hero-badges-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+
+      .mini-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 999px;
+        font-size: 0.76rem;
+        font-weight: 500;
+        color: #f1f5f9;
+
+        mat-icon {
+          font-size: 14px;
+          width: 14px;
+          height: 14px;
+          color: #38bdf8;
+        }
+      }
+    }
+  }
+
+  @media (max-width: 960px) {
+    min-height: 260px;
+    padding: 24px;
+    flex: none;
+
+    .hero-quote {
+      font-size: 0.95rem;
+      margin-bottom: 12px;
+    }
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 2. RIGHT AUTH FORM PANE
+// ----------------------------------------------------------------------------
+.auth-form-pane {
+  flex: 1.1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+  background: #ffffff;
+  overflow-y: auto;
+  position: relative;
+
+  .auth-form-container {
+    width: 100%;
+    max-width: 440px;
+    margin: auto;
+    transition: max-width 0.3s ease;
+
+    &.registration-mode {
+      max-width: 580px;
+    }
+  }
+
+  // Header above form
+  .form-header {
+    text-align: center;
+    margin-bottom: 28px;
+
+    .brand-pill-logo {
+      display: inline-block;
+      width: 60px;
+      height: 30px;
+      margin: 0 auto 16px;
+
+      svg {
+        width: 100%;
+        height: 100%;
+        filter: drop-shadow(0 4px 10px rgba(2, 132, 199, 0.2));
+      }
+    }
+
+    .form-title {
+      margin: 0 0 6px;
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.5px;
+    }
+
+    .form-subtitle {
+      margin: 0 0 20px;
+      font-size: 0.92rem;
+      color: #64748b;
+    }
+
+    // Segmented tab pill switcher
+    .segmented-pill-switcher {
+      display: inline-flex;
+      background-color: #f1f5f9;
+      border-radius: 999px;
+      padding: 4px;
+      gap: 4px;
+      border: 1px solid #e2e8f0;
+
+      .pill-tab {
+        border: none;
+        background: transparent;
+        padding: 7px 18px;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #64748b;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+
+        mat-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+        }
+
+        &.active {
+          background-color: #ffffff;
+          color: #0284c7;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        &:hover:not(.active) {
+          color: #0f172a;
+        }
+      }
+    }
+  }
+
+  // Form Fields Styling
+  .form-group-custom {
+    margin-bottom: 8px;
+
+    .field-label {
+      display: block;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+
+    .label-with-action {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  }
+
+  // Modern input styles
+  .modern-field {
+    width: 100%;
+
+    ::ng-deep {
+      .mat-mdc-text-field-wrapper {
+        background-color: #f8fafc;
+        border-radius: 12px;
+        transition: background-color 0.2s ease;
+      }
+
+      .mat-mdc-form-field-focus-overlay {
+        background: transparent;
+      }
+
+      .mdc-notched-outline__leading,
+      .mdc-notched-outline__notch,
+      .mdc-notched-outline__trailing {
+        border-color: #e2e8f0 !important;
+        border-width: 1.5px !important;
+      }
+
+      &.mat-focused {
+        .mat-mdc-text-field-wrapper {
+          background-color: #ffffff;
+        }
+
+        .mdc-notched-outline__leading,
+        .mdc-notched-outline__notch,
+        .mdc-notched-outline__trailing {
+          border-color: #0284c7 !important;
+          border-width: 2px !important;
+        }
+      }
+
+      .mat-mdc-form-field-subscript-wrapper {
+        margin-top: 2px;
+      }
+
+      .mat-mdc-form-field-icon-prefix {
+        color: #94a3b8;
+        padding-right: 8px;
+
+        .field-icon {
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+        }
+      }
+
+      .mat-mdc-form-field-icon-suffix {
+        color: #94a3b8;
+      }
+
+      input.mat-mdc-input-element {
+        color: #0f172a;
+        font-size: 0.95rem;
+
+        &::placeholder {
+          color: #94a3b8;
+        }
+      }
+    }
+  }
+
+  // Forgot password link
+  .forgot-row {
+    display: flex;
+    justify-content: flex-end;
+    margin: -4px 0 20px;
+
+    .forgot-link {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #0284c7;
+      text-decoration: none;
+      transition: color 0.15s ease;
+
+      &:hover {
+        color: #0369a1;
+        text-decoration: underline;
+      }
+    }
+  }
+
+  // Centered Submit Button Row
+  .submit-btn-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    margin: 16px 0 8px;
+  }
+
+  // Big Rounded Pill Primary Button (Centered & Full Width, Matches Reference)
+  .btn-pill-primary {
+    width: 100% !important;
+    height: 50px !important;
+    border-radius: 25px !important;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+    color: #ffffff !important;
+    font-size: 1.02rem !important;
+    font-weight: 600 !important;
+    box-shadow: 0 8px 20px -4px rgba(37, 99, 235, 0.45);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    margin: 0 auto !important;
+
+    ::ng-deep .mdc-button__label {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 100% !important;
+      text-align: center !important;
+    }
+
+    .btn-content {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 8px;
+      width: 100% !important;
+      text-align: center !important;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+
+      .spinner-icon {
+        animation: spin 1s linear infinite;
+      }
+    }
+
+    &:hover:not([disabled]) {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px -4px rgba(37, 99, 235, 0.55);
+      background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;
+    }
+
+    &:active:not([disabled]) {
+      transform: translateY(0);
+    }
+
+    &[disabled] {
+      opacity: 0.65;
+      background: #94a3b8 !important;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+  }
+
+  // Switch Auth Prompt Footer
+  .switch-auth-footer {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 0.9rem;
+    color: #64748b;
+
+    .switch-link {
+      margin-left: 6px;
+      color: #2563eb;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  // Registration Multi-Column Form
+  .form-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 2px;
+
+    &.two-col {
+      > * {
+        flex: 1;
+      }
+    }
+
+    &.name-row {
+      .col-prefix {
+        width: 110px;
+        flex-shrink: 0;
+      }
+
+      .col-fname,
+      .col-lname {
+        flex: 1;
+      }
+    }
+
+    @media (max-width: 600px) {
+      flex-direction: column;
+      gap: 0;
+
+      &.name-row .col-prefix {
+        width: 100%;
+      }
+    }
+  }
+
+  .register-submit-btn {
+    width: 100% !important;
+    margin: 8px auto 0 !important;
+  }
+}
+
+// Fade in animation for tab switching
+.fade-in {
+  animation: fadeIn 0.25s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

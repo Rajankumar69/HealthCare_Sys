@@ -1,0 +1,79 @@
+<div *ngIf="isOpen" class="profile-modal-backdrop" (click)="onCancel()">
+  <div class="profile-modal-card" [class.nurse-theme]="theme === 'nurse'" (click)="$event.stopPropagation()">
+    <div class="profile-modal-header">
+      <div class="header-title-group">
+        <mat-icon>{{ theme === 'doctor' ? 'medical_services' : 'health_and_safety' }}</mat-icon>
+        <div>
+          <h3>Edit {{ theme === 'doctor' ? 'Doctor' : 'Nurse' }} Profile Details</h3>
+          <span class="header-sub">Changes are saved to your account and reflected on the sidebar.</span>
+        </div>
+      </div>
+      <button type="button" mat-icon-button (click)="onCancel()" [disabled]="isSaving" class="close-btn">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <form (ngSubmit)="onSubmit()" #profileForm="ngForm" class="profile-modal-body">
+      <div *ngIf="errorMessage" class="error-alert">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ errorMessage }}</span>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-field-group">
+          <label class="field-label">Full Name *</label>
+          <input type="text" [(ngModel)]="form.fullName" name="fullName" required maxlength="150"
+                 class="modern-input" placeholder="Enter full name">
+        </div>
+
+        <div class="form-field-group">
+          <label class="field-label">Email Address *</label>
+          <input type="email" [(ngModel)]="form.email" name="email" required maxlength="150"
+                 class="modern-input" placeholder="name@hospital.com">
+        </div>
+
+        <div class="form-field-group">
+          <label class="field-label">Phone Number</label>
+          <input type="text" [(ngModel)]="form.phoneNumber" name="phoneNumber" maxlength="50"
+                 class="modern-input" placeholder="e.g. +91 9876543210">
+        </div>
+
+        <div class="form-field-group">
+          <label class="field-label">Department</label>
+          <select [(ngModel)]="form.departmentId" name="departmentId" class="modern-input">
+            <option [ngValue]="null">-- Select Department --</option>
+            <option *ngFor="let dept of departments" [ngValue]="dept.departmentId">
+              {{ dept.departmentName }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-field-group">
+          <label class="field-label">Title / Designation</label>
+          <input type="text" [(ngModel)]="form.jobTitle" name="jobTitle" maxlength="150"
+                 class="modern-input"
+                 [placeholder]="theme === 'doctor' ? 'e.g. Cardiology Specialist' : 'e.g. Senior Registered Nurse (RN)'">
+        </div>
+
+        <div class="form-field-group">
+          <label class="field-label">{{ theme === 'doctor' ? 'Room / Wing' : 'Station / Unit' }}</label>
+          <input type="text" [(ngModel)]="form.workLocation" name="workLocation" maxlength="150"
+                 class="modern-input"
+                 [placeholder]="theme === 'doctor' ? 'e.g. Room 402, Wing B' : 'e.g. Triage Desk & Vitals Station'">
+        </div>
+      </div>
+
+      <div class="profile-modal-footer">
+        <button type="button" mat-stroked-button (click)="onCancel()" [disabled]="isSaving">
+          Cancel
+        </button>
+        <button type="submit" mat-flat-button color="primary" class="btn-save-profile"
+                [disabled]="isSaving || !profileForm.valid">
+          <mat-spinner diameter="18" *ngIf="isSaving"></mat-spinner>
+          <mat-icon *ngIf="!isSaving">save</mat-icon>
+          <span>{{ isSaving ? 'Saving...' : 'Save Details' }}</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

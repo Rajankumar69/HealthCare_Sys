@@ -1,0 +1,74 @@
+services:
+  authservice:
+    build:
+      context: ./backend
+      dockerfile: AuthService/Dockerfile
+    image: ${DOCKER_USER:-rajan69106}/healthcare-authservice:${TAG:-latest}
+    container_name: healthcare-authservice
+    ports:
+      - "5010:5010"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://0.0.0.0:5010
+    restart: unless-stopped
+
+  healthcareservice:
+    build:
+      context: ./backend
+      dockerfile: HealthcareService/Dockerfile
+    image: ${DOCKER_USER:-rajan69106}/healthcare-healthcareservice:${TAG:-latest}
+    container_name: healthcare-healthcareservice
+    ports:
+      - "5020:5020"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://0.0.0.0:5020
+      - Services__AuthServiceUrl=http://authservice:5010
+    depends_on:
+      - authservice
+    restart: unless-stopped
+
+  globalsearchservice:
+    build:
+      context: ./backend
+      dockerfile: GlobalSearchService/Dockerfile
+    image: ${DOCKER_USER:-rajan69106}/healthcare-globalsearchservice:${TAG:-latest}
+    container_name: healthcare-globalsearchservice
+    ports:
+      - "5030:5030"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://0.0.0.0:5030
+    restart: unless-stopped
+
+  apigateway:
+    build:
+      context: ./backend
+      dockerfile: ApiGateway/Dockerfile
+    image: ${DOCKER_USER:-rajan69106}/healthcare-apigateway:${TAG:-latest}
+    container_name: healthcare-apigateway
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://0.0.0.0:5000
+      - ReverseProxy__Clusters__auth-cluster__Destinations__destination1__Address=http://authservice:5010
+      - ReverseProxy__Clusters__healthcare-cluster__Destinations__destination1__Address=http://healthcareservice:5020
+      - ReverseProxy__Clusters__globalsearch-cluster__Destinations__destination1__Address=http://globalsearchservice:5030
+    depends_on:
+      - authservice
+      - healthcareservice
+      - globalsearchservice
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend/healthcare-app
+      dockerfile: Dockerfile
+    image: ${DOCKER_USER:-rajan69106}/healthcare-frontend:${TAG:-latest}
+    container_name: healthcare-frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - apigateway
+    restart: unless-stopped

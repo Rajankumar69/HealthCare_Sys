@@ -1,0 +1,696 @@
+<div class="dashboard-layout">
+  <!-- TOP NAVBAR -->
+  <mat-toolbar color="primary" class="main-navbar">
+    <div class="nav-left">
+      <span class="material-icons logo-icon">desk</span>
+      <span class="portal-title">Front Desk Operations Portal</span>
+    </div>
+
+    <!-- Navigation Pills -->
+    <div class="nav-links">
+      <!-- 1. Doctor Time Chart & Availability -->
+      <button mat-button [class.active-link]="currentView === 'chart'" (click)="setView('chart')">
+        <mat-icon>calendar_view_week</mat-icon>
+        Doctor Time Chart
+      </button>
+
+      <!-- 2. All Appointments -->
+      <button mat-button [class.active-link]="currentView === 'all-appointments'" (click)="setView('all-appointments')">
+        <mat-icon>event_note</mat-icon>
+        All Appointments
+        <span class="counter-badge blue" *ngIf="allAppointments.length > 0">{{ allAppointments.length }}</span>
+      </button>
+
+      <!-- 4. Patients Directory -->
+      <button mat-button [class.active-link]="currentView === 'patients'" (click)="setView('patients')">
+        <mat-icon>groups</mat-icon>
+        Patients
+      </button>
+
+      <!-- Quick Book Button -->
+      <button mat-flat-button class="quick-book-pill" (click)="openGenericBooking()">
+        <mat-icon>add_circle</mat-icon>
+        New Booking
+      </button>
+    </div>
+
+    <!-- User Profile Dropdown & Direct Sign Out -->
+    <div class="nav-right" style="display: flex; align-items: center; gap: 8px;">
+      <button mat-button [matMenuTriggerFor]="profileMenu" class="profile-btn">
+        <div class="profile-chip">
+          <span class="material-icons avatar-icon">account_circle</span>
+          <div class="profile-meta">
+            <span class="user-name">{{ currentUser?.fullName || 'Front Desk User' }}</span>
+            <span class="user-role">{{ currentUser?.role || 'Front Desk' }}</span>
+          </div>
+          <mat-icon class="dropdown-arrow">arrow_drop_down</mat-icon>
+        </div>
+      </button>
+      <mat-menu #profileMenu="matMenu">
+        <div class="menu-profile-card">
+          <p class="menu-name">{{ currentUser?.fullName }}</p>
+          <p class="menu-email">{{ currentUser?.email }}</p>
+          <span class="badge-role">Role: {{ currentUser?.role }}</span>
+        </div>
+        <mat-divider></mat-divider>
+        <button mat-menu-item (click)="logout()">
+          <mat-icon color="warn">logout</mat-icon>
+          <span>Sign Out</span>
+        </button>
+      </mat-menu>
+    </div>
+  </mat-toolbar>
+
+  <div class="dashboard-body">
+    <!-- FRONT DESK SIDEBAR -->
+    <aside class="frontdesk-sidebar">
+      <div class="frontdesk-card">
+        <div class="frontdesk-photo-wrapper">
+          <div class="frontdesk-avatar-circle">
+            <mat-icon class="frontdesk-avatar-icon">desk</mat-icon>
+          </div>
+          <div class="online-indicator"></div>
+        </div>
+
+        <h3 class="frontdesk-name">{{ currentUser?.fullName }}</h3>
+        <p class="frontdesk-title">Appointment Coordinator</p>
+        <span class="frontdesk-dept-badge">Hospital Front Desk & Triage Reception</span>
+
+        <div class="frontdesk-info-list">
+          <div class="info-item">
+            <span class="material-icons">badge</span>
+            <span>Desk ID: #FD-{{ currentUser?.userId }}</span>
+          </div>
+          <div class="info-item">
+            <span class="material-icons">mail</span>
+            <span>{{ currentUser?.email }}</span>
+          </div>
+          <div class="info-item">
+            <span class="material-icons">verified_user</span>
+            <span>Active Role: <strong>{{ currentUser?.role }}</strong></span>
+          </div>
+          <div class="info-item">
+            <span class="material-icons">event_available</span>
+            <span>Direct Slot Booking: <strong>Active</strong></span>
+          </div>
+          <div class="info-item">
+            <span class="material-icons">schedule</span>
+            <span>Hospital Shift: Day Triage</span>
+          </div>
+        </div>
+
+        <div class="sidebar-stats-box">
+          <div class="stat-cell">
+            <span class="stat-num">{{ totalPatients }}</span>
+            <span class="stat-label">Total Patients</span>
+          </div>
+          <div class="stat-cell">
+            <span class="stat-num">{{ allAppointments.length }}</span>
+            <span class="stat-label">Total Visits</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+
+      <!-- ============================================================== -->
+      <!-- VIEW 1: DOCTOR TIME CHART & SLOT AVAILABILITY (Core Requirement) -->
+      <!-- ============================================================== -->
+      <div *ngIf="currentView === 'chart'" class="content-section fade-in">
+        <div class="section-top">
+          <div>
+            <h2>Doctor Appointment Time Chart</h2>
+            <p class="sub">
+              Live schedule & slot booking matrix for every doctor. Booked slots are blocked and not bookable; when an appointment is freed or cancelled, the slot automatically becomes available for booking.
+            </p>
+          </div>
+          <button mat-flat-button color="primary" class="btn-create-appt" (click)="openGenericBooking()">
+            <mat-icon>add</mat-icon> Book Appointment
+          </button>
+        </div>
+
+        <!-- Schedule Filter Controls -->
+        <div class="schedule-controls-card">
+          <div class="control-group">
+            <label class="control-label">
+              <mat-icon>person</mat-icon> Select Doctor:
+            </label>
+            <select [ngModel]="selectedDoctorId" (ngModelChange)="onDoctorChange($event)" class="doctor-select">
+              <option *ngFor="let doc of doctors" [value]="doc.userId">
+                {{ doc.fullName }} ({{ doc.departmentName || 'Specialist' }})
+              </option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">
+              <mat-icon>calendar_today</mat-icon> Consultation Date:
+            </label>
+            <input type="date" [ngModel]="selectedDate" (ngModelChange)="onDateChange($event)" class="date-input" [min]="minBookingDate">
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">
+              <mat-icon>timelapse</mat-icon> Slot Duration:
+            </label>
+            <div style="display: flex; gap: 4px;">
+              <button type="button" mat-stroked-button [color]="selectedDuration === 15 ? 'primary' : ''" (click)="onDurationChange(15)" style="height: 40px; border-radius: 8px; font-weight: 600;">15m</button>
+              <button type="button" mat-stroked-button [color]="selectedDuration === 30 ? 'primary' : ''" (click)="onDurationChange(30)" style="height: 40px; border-radius: 8px; font-weight: 600;">30m</button>
+              <button type="button" mat-stroked-button [color]="selectedDuration === 60 ? 'primary' : ''" (click)="onDurationChange(60)" style="height: 40px; border-radius: 8px; font-weight: 600;">1h</button>
+            </div>
+          </div>
+
+          <button mat-stroked-button class="btn-refresh" (click)="loadSchedule()">
+            <mat-icon>sync</mat-icon> Refresh Chart
+          </button>
+        </div>
+
+        <!-- Doctor On Leave Alert Banner -->
+        <div class="doctor-on-leave-alert-banner" *ngIf="currentDoctorLeave && !isDoctorOnFullDayLeave()"><ng-container *ngIf="currentDoctorLeave as leave">
+          <div class="alert-icon-circle">
+            <mat-icon>event_busy</mat-icon>
+          </div>
+          <div class="alert-text-body">
+            <div class="alert-title-row">
+              <span class="alert-main-title">Doctor On Leave: {{ doctorSchedule?.doctorName || getSelectedDoctorName() }}</span>
+              <span class="leave-type-chip" [class.half-day]="leave.leaveCategory !== 'future'">
+                {{ leave.leaveCategory === 'future' ? 'Full-Day Leave' : (leave.leaveCategory === 'half-day' ? 'Half-Day Leave (' + leave.halfDaySession + ')' : 'Short Leave (' + leave.startTime + ' - ' + leave.endTime + ')') }}
+              </span>
+            </div>
+            <p class="alert-desc">
+              <strong>Category:</strong> {{ leave.leaveType }} &bull; 
+              <strong>Period:</strong> {{ leave.startDate | date:'mediumDate' }} 
+              <span *ngIf="leave.endDate !== leave.startDate"> to {{ leave.endDate | date:'mediumDate' }}</span> &bull; 
+              <strong>Reason:</strong> <em>"{{ leave.reason }}"</em>
+            </p>
+            <div class="leave-guidance-pill">
+              <mat-icon>info</mat-icon>
+              <span>Consultation slots during this leave schedule are blocked. Patient booking and scheduling for this period are locked.</span>
+            </div>
+          </div>
+          </ng-container>
+        </div>
+
+        <!-- DEDICATED DOCTOR ON LEAVE NOTICE CARD (Replaces Time Slots Calendar) -->
+        <div class="doctor-leave-notice-card" *ngIf="!isLoadingSchedule && isDoctorOnFullDayLeave() && currentDoctorLeave">
+          <ng-container *ngIf="currentDoctorLeave as leave">
+          <div class="leave-notice-header-row">
+            <div class="leave-notice-icon-box">
+              <mat-icon>event_busy</mat-icon>
+            </div>
+            <div class="leave-notice-title-box">
+              <div class="leave-notice-badge-row">
+                <span class="badge-leave-alert"><mat-icon>block</mat-icon> DOCTOR ON LEAVE</span>
+                <span class="badge-leave-type">{{ leave.leaveType }}</span>
+                <span class="badge-leave-category">{{ leave.leaveCategory === 'future' ? 'Full-Day Leave' : 'Leave Period' }}</span>
+              </div>
+              <h2 class="doctor-name-title">{{ doctorSchedule?.doctorName || getSelectedDoctorName() }}</h2>
+              <p class="leave-date-statement">
+                Doctor is on approved leave and unavailable for patient consultations on <strong>{{ (doctorSchedule?.date || selectedDate) | date:'fullDate' }}</strong>.
+              </p>
+            </div>
+          </div>
+
+          <div class="leave-details-grid">
+            <div class="detail-box">
+              <span class="detail-label"><mat-icon>date_range</mat-icon> Full Leave Period</span>
+              <strong class="detail-val">
+                {{ leave.startDate | date:'mediumDate' }} 
+                <span *ngIf="leave.endDate !== leave.startDate"> to {{ leave.endDate | date:'mediumDate' }}</span>
+              </strong>
+            </div>
+            <div class="detail-box">
+              <span class="detail-label"><mat-icon>category</mat-icon> Leave Category</span>
+              <strong class="detail-val">{{ leave.leaveType }}</strong>
+            </div>
+            <div class="detail-box">
+              <span class="detail-label"><mat-icon>verified</mat-icon> Approval Status</span>
+              <span class="status-approved-pill">✓ {{ leave.status || 'Approved' }}</span>
+            </div>
+          </div>
+
+          <div class="leave-reason-quote" *ngIf="leave.reason">
+            <mat-icon class="quote-icon">format_quote</mat-icon>
+            <div class="reason-content">
+              <span class="reason-label">Reason Stated by Doctor:</span>
+              <p class="reason-val">"{{ leave.reason }}"</p>
+            </div>
+          </div>
+
+          <div class="leave-notice-footer-info">
+            <div class="guidance-tip">
+              <mat-icon>info</mat-icon>
+              <span>Consultation time slots for this doctor are locked on this date. Patient appointments cannot be booked.</span>
+            </div>
+            <p class="action-help-text">
+              Please select another date using the <strong>Consultation Date</strong> picker above, or choose another available specialist.
+            </p>
+          </div>
+          </ng-container>
+        </div>
+
+        <!-- Doctor Summary Strip -->
+        <div class="schedule-summary-strip" *ngIf="doctorSchedule && !isDoctorOnFullDayLeave()">
+          <div class="doc-meta-info">
+            <mat-icon class="stethoscope-icon">medical_services</mat-icon>
+            <div>
+              <h3>{{ doctorSchedule.doctorName }}</h3>
+              <p>Schedule for <strong>{{ doctorSchedule.date | date:'fullDate' }}</strong></p>
+            </div>
+          </div>
+
+          <div class="slot-counter-chips">
+            <span class="counter-chip total">
+              <mat-icon>event_seat</mat-icon> {{ doctorSchedule.totalSlots }} Total Slots
+            </span>
+            <span class="counter-chip booked">
+              <mat-icon>block</mat-icon> {{ doctorSchedule.bookedSlots }} Booked (Not Bookable)
+            </span>
+            <span class="counter-chip free">
+              <mat-icon>check_circle</mat-icon> {{ doctorSchedule.availableSlots }} Free (Bookable)
+            </span>
+          </div>
+        </div>
+
+        <!-- Slot Chart Grid -->
+        <div class="loading-state" *ngIf="isLoadingSchedule">
+          <mat-spinner diameter="40"></mat-spinner>
+          <p>Fetching doctor time chart and slot availability...</p>
+        </div>
+
+        <div class="slots-grid" *ngIf="!isLoadingSchedule && doctorSchedule && !isDoctorOnFullDayLeave()">
+          <div *ngFor="let slot of doctorSchedule.slots" 
+               class="slot-card"
+               [class.slot-booked]="slot.isBooked"
+               [class.slot-available]="!slot.isBooked">
+            
+            <!-- Top Slot Header -->
+            <div class="slot-card-header">
+              <div class="slot-time-pill">
+                <mat-icon>schedule</mat-icon>
+                <span>{{ slot.slotLabel }}</span>
+              </div>
+              <span class="slot-badge" [class.badge-occupied]="slot.isBooked" [class.badge-free]="!slot.isBooked">
+                <mat-icon>{{ slot.isBooked ? 'lock' : 'check_circle' }}</mat-icon>
+                {{ slot.isBooked ? 'BOOKED' : 'AVAILABLE' }}
+              </span>
+            </div>
+
+            <!-- Doctor Name & Date of Appointment (Requirement 3) -->
+            <div class="slot-card-meta-bar">
+              <div class="meta-item-doc" title="Consulting Doctor">
+                <mat-icon>medical_services</mat-icon>
+                <span class="doc-name">{{ doctorSchedule?.doctorName || getSelectedDoctorName() }}</span>
+              </div>
+              <div class="meta-item-date" title="Appointment Date">
+                <mat-icon>calendar_today</mat-icon>
+                <span class="date-text">{{ (doctorSchedule?.date || selectedDate) | date:'mediumDate' }}</span>
+              </div>
+            </div>
+
+            <!-- Slot Card Body -->
+            <div class="slot-card-body">
+              <!-- When Slot is BOOKED -->
+              <div *ngIf="slot.isBooked" class="booked-info">
+                <div class="doctor-leave-slot-callout" *ngIf="slot.status === 'DoctorOnLeave'" style="display: flex; gap: 10px; align-items: flex-start; background: #fff1f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px;">
+                  <mat-icon style="color: #e11d48; font-size: 20px; width: 20px; height: 20px;">event_busy</mat-icon>
+                  <div>
+                    <strong style="color: #9f1239; font-size: 0.88rem; display: block;">Doctor on Leave</strong>
+                    <p style="margin: 2px 0 0; font-size: 0.78rem; color: #881337; line-height: 1.35;">{{ slot.notes || 'Doctor unavailable for consultations on this date.' }}</p>
+                  </div>
+                </div>
+
+                <div class="patient-line" *ngIf="slot.status !== 'DoctorOnLeave'">
+                  <mat-icon>person</mat-icon>
+                  <div>
+                    <h4 class="patient-name">{{ slot.patientName }}</h4>
+                    <span class="patient-phone" *ngIf="slot.patientPhone">{{ slot.patientPhone }}</span>
+                  </div>
+                </div>
+
+                <div class="reason-line" *ngIf="slot.reason">
+                  <span class="label">Reason:</span>
+                  <p class="val">{{ slot.reason }}</p>
+                </div>
+
+                <div class="status-chip-row">
+                  <span class="status-pill" [ngClass]="getStatusClass(slot.status)">
+                    Status: {{ slot.status }}
+                  </span>
+                  <span class="booked-warning-text">Not Bookable</span>
+                </div>
+
+                <!-- Slot Action: Cancel to free up the slot -->
+                <div class="slot-card-footer">
+                  <button mat-button class="btn-cancel-slot" *ngIf="slot.appointmentId" (click)="cancelAppointment({ appointmentId: slot.appointmentId, patientName: slot.patientName })">
+                    <mat-icon>event_busy</mat-icon> Cancel & Free Slot
+                  </button>
+                  <button mat-button class="btn-view-details" *ngIf="slot.patientId" (click)="viewPatientDetails(slot.patientId, slot.appointmentId)">
+                    <mat-icon>visibility</mat-icon> Patient Details
+                  </button>
+                </div>
+              </div>
+
+              <!-- When Slot is AVAILABLE -->
+              <div *ngIf="!slot.isBooked" class="available-info">
+                <div class="free-slot-callout">
+                  <mat-icon class="pulse-icon">event_available</mat-icon>
+                  <div>
+                    <h4>Slot is Free</h4>
+                    <p>Doctor is available from {{ slot.startTime }} to {{ slot.endTime }}.</p>
+                  </div>
+                </div>
+
+                <div class="slot-card-footer single-action">
+                  <button mat-flat-button class="btn-book-slot" (click)="openBookingForSlot(slot)">
+                    <mat-icon>bookmark_add</mat-icon> Book This Slot
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- VIEW 2: ALL APPOINTMENTS DIRECTORY -->
+      <!-- ============================================================== -->
+      <div *ngIf="currentView === 'all-appointments'" class="content-section fade-in">
+        <div class="section-top">
+          <div>
+            <h2>All Appointments Directory</h2>
+            <p class="sub">View, filter, reschedule, or cancel patient appointments across all doctors.</p>
+          </div>
+          <button mat-flat-button color="primary" class="btn-create-appt" (click)="openGenericBooking()">
+            <mat-icon>add</mat-icon> New Booking
+          </button>
+        </div>
+
+        <!-- Filter bar -->
+        <div class="filter-bar">
+          <div class="search-box">
+            <mat-icon>search</mat-icon>
+            <input type="text" [(ngModel)]="apptSearchTerm" (ngModelChange)="applyApptFilter()" placeholder="Search patient, doctor, or slot...">
+          </div>
+
+          <div class="filter-chips">
+            <button mat-button class="chip-btn" [class.active]="filterStatus === 'ALL'" (click)="setFilterStatus('ALL')">All</button>
+            <button mat-button class="chip-btn" [class.active]="filterStatus === 'Approved'" (click)="setFilterStatus('Approved')">Confirmed</button>
+            <button mat-button class="chip-btn" [class.active]="filterStatus === 'Rescheduled'" (click)="setFilterStatus('Rescheduled')">Rescheduled</button>
+            <button mat-button class="chip-btn" [class.active]="filterStatus === 'Done'" (click)="setFilterStatus('Done')">Done</button>
+            <button mat-button class="chip-btn" [class.active]="filterStatus === 'Cancelled'" (click)="setFilterStatus('Cancelled')">Cancelled</button>
+          </div>
+        </div>
+
+        <div *ngIf="filteredAppointments.length === 0" class="empty-card">
+          <span class="material-icons">event_busy</span>
+          <h3>No Appointments Found</h3>
+          <p>No records match the current filter or search criteria.</p>
+        </div>
+
+        <div class="appointment-cards-grid" *ngIf="filteredAppointments.length > 0">
+          <div *ngFor="let appt of filteredAppointments" class="appt-card" [ngClass]="getStatusClass(appt.status)">
+            <div class="appt-header">
+              <div>
+                <span class="badge-status" [ngClass]="getStatusClass(appt.status)">{{ appt.status === 'Approved' ? 'Confirmed' : appt.status }}</span>
+                <h3>{{ appt.patientName }}</h3>
+              </div>
+              <span class="appt-date-chip">{{ appt.appointmentDate | date:'mediumDate' }} at {{ appt.appointmentTime }}</span>
+            </div>
+
+            <div class="appt-details">
+              <p><strong>Doctor:</strong> Dr. {{ appt.doctorName }}</p>
+              <p><strong>Reason:</strong> {{ appt.reason || 'General Consultation' }}</p>
+              <p *ngIf="appt.notes"><strong>Notes:</strong> {{ appt.notes }}</p>
+              <p class="contact-info">{{ appt.patientPhone }} | {{ appt.patientEmail }}</p>
+            </div>
+
+            <div class="appt-actions">
+              <button mat-button color="primary" (click)="viewPatientDetails(appt.patientId, appt.appointmentId)">
+                <mat-icon>person</mat-icon> Details
+              </button>
+
+              <!-- Reschedule button -->
+              <button mat-stroked-button color="primary" *ngIf="appt.status?.toLowerCase() !== 'cancelled' && appt.status?.toLowerCase() !== 'done'" (click)="openRescheduleModal(appt)">
+                <mat-icon>edit_calendar</mat-icon> Reschedule
+              </button>
+
+              <!-- Cancel button (frees the slot) -->
+              <button mat-button color="warn" *ngIf="appt.status?.toLowerCase() !== 'cancelled' && appt.status?.toLowerCase() !== 'done'" (click)="cancelAppointment(appt)">
+                <mat-icon>close</mat-icon> Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- VIEW 4: PATIENTS DIRECTORY -->
+      <!-- ============================================================== -->
+      <div *ngIf="currentView === 'patients'" class="content-section fade-in">
+        <div class="section-top">
+          <div>
+            <h2>Patients Directory</h2>
+            <p class="sub">Hospital patient records, contact information, and medical background.</p>
+          </div>
+        </div>
+
+        <div class="patients-search-bar">
+          <mat-icon>search</mat-icon>
+          <input type="text" [(ngModel)]="patientSearchTerm" (keyup.enter)="onPatientSearch()" placeholder="Search patient name, email, phone...">
+          <button mat-flat-button color="primary" (click)="onPatientSearch()">Search</button>
+        </div>
+
+        <div class="table-card" *ngIf="!isLoadingPatients">
+          <table mat-table [dataSource]="patients" class="modern-table">
+            <ng-container matColumnDef="id">
+              <th mat-header-cell *matHeaderCellDef>Patient ID</th>
+              <td mat-cell *matCellDef="let p">#PAT-{{ p.patientID }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef>Full Name</th>
+              <td mat-cell *matCellDef="let p">
+                <strong>{{ p.prefix }} {{ p.firstName }} {{ p.lastName }}</strong>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="contact">
+              <th mat-header-cell *matHeaderCellDef>Contact</th>
+              <td mat-cell *matCellDef="let p">{{ p.phoneNumber }}<br><small class="text-muted">{{ p.email }}</small></td>
+            </ng-container>
+
+            <ng-container matColumnDef="age">
+              <th mat-header-cell *matHeaderCellDef>Age</th>
+              <td mat-cell *matCellDef="let p">{{ p.age }} yrs</td>
+            </ng-container>
+
+            <ng-container matColumnDef="gender">
+              <th mat-header-cell *matHeaderCellDef>Gender</th>
+              <td mat-cell *matCellDef="let p">{{ p.gender }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="problem">
+              <th mat-header-cell *matHeaderCellDef>Chief Problem</th>
+              <td mat-cell *matCellDef="let p">{{ p.problem || 'None reported' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let p">
+                <button mat-stroked-button color="primary" (click)="viewPatientDetails(p.patientID)">
+                  <mat-icon>visibility</mat-icon> View Full Record
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="patientColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: patientColumns;"></tr>
+          </table>
+
+          <mat-paginator [length]="totalPatients"
+                         [pageSize]="patientPageSize"
+                         [pageSizeOptions]="[5, 10, 20]"
+                         (page)="onPatientPageChange($event)">
+          </mat-paginator>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- QUICK BOOKING MODAL -->
+<!-- ============================================================== -->
+<div class="modal-backdrop" *ngIf="showBookingModal" (click)="closeBookingModal()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title-row">
+        <mat-icon class="modal-icon">book_online</mat-icon>
+        <div>
+          <h3>Front Desk Appointment Booking</h3>
+          <p class="modal-sub">Schedule an appointment into an open doctor time slot</p>
+        </div>
+      </div>
+      <button mat-icon-button (click)="closeBookingModal()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <form [formGroup]="bookingForm" (ngSubmit)="submitBooking()" class="booking-form-body">
+      <!-- Select Patient -->
+      <div class="form-group">
+        <label class="form-label">Select Patient *</label>
+        <select formControlName="patientId" class="modal-select" required>
+          <option value="" disabled>-- Choose a registered patient --</option>
+          <option *ngFor="let p of patients" [value]="p.patientID">
+            #PAT-{{ p.patientID }} - {{ p.prefix }} {{ p.firstName }} {{ p.lastName }} ({{ p.phoneNumber }})
+          </option>
+        </select>
+      </div>
+
+      <!-- Select Doctor -->
+      <div class="form-group">
+        <label class="form-label">Doctor *</label>
+        <select formControlName="doctorId" class="modal-select" required>
+          <option *ngFor="let doc of doctors" [value]="doc.userId">
+            {{ doc.fullName }} ({{ doc.departmentName || 'Specialist' }})
+          </option>
+        </select>
+      </div>
+
+      <!-- Doctor Leave Warning in Modal -->
+      <div class="modal-leave-alert-banner" *ngIf="currentModalDoctorLeave">
+        <mat-icon>event_busy</mat-icon>
+        <div>
+          <strong>Doctor On Leave ({{ currentModalDoctorLeave.leaveCategory === 'future' ? 'Full-Day Leave' : (currentModalDoctorLeave.leaveCategory === 'half-day' ? 'Half-Day Leave (' + currentModalDoctorLeave.halfDaySession + ')' : 'Short Leave') }})</strong>
+          <p>{{ currentModalDoctorLeave.leaveType }}: <em>"{{ currentModalDoctorLeave.reason }}"</em>. Relevant slots are blocked for booking.</p>
+        </div>
+      </div>
+
+      <!-- Date & Slot (Dropdown Format) -->
+      <div class="form-row-two">
+        <div class="form-group">
+          <label class="form-label">Consultation Date *</label>
+          <input type="date" formControlName="appointmentDate" class="modal-input" [min]="minBookingDate" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            Time Slot *
+            <span *ngIf="isLoadingModalSlots" style="font-size: 11px; color: #0284c7; font-weight: 500;">(Loading...)</span>
+          </label>
+          <select formControlName="appointmentTime" class="modal-select" required>
+            <option value="" disabled *ngIf="modalSlots.length === 0">
+              {{ isLoadingModalSlots ? 'Checking slots...' : '-- Choose time slot --' }}
+            </option>
+            <option *ngFor="let slot of modalSlots" 
+                    [value]="slot.slotLabel" 
+                    [disabled]="slot.isBooked">
+              {{ slot.slotLabel }} {{ slot.isBooked ? '(Booked)' : '' }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Reason for Visit -->
+      <div class="form-group">
+        <label class="form-label">Chief Reason / Symptoms *</label>
+        <input type="text" formControlName="reason" class="modal-input" placeholder="e.g. Fever, routine cardiac checkup" required>
+      </div>
+
+      <!-- Front Desk Notes -->
+      <div class="form-group">
+        <label class="form-label">Desk Remarks / Notes</label>
+        <textarea formControlName="notes" class="modal-textarea" rows="2" placeholder="e.g. Priority walk-in triage"></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" mat-button (click)="closeBookingModal()">Cancel</button>
+        <button type="submit" mat-flat-button color="primary" [disabled]="bookingForm.invalid || isSubmittingBooking || isCurrentSelectedSlotBooked() || currentModalDoctorLeave?.leaveCategory === 'future'">
+          <mat-icon>{{ isSubmittingBooking ? 'sync' : 'check' }}</mat-icon>
+          {{ isSubmittingBooking ? 'Booking...' : 'Confirm & Reserve Slot' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- RESCHEDULE MODAL -->
+<!-- ============================================================== -->
+<div class="modal-backdrop" *ngIf="selectedApptForReschedule" (click)="closeRescheduleModal()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title-row">
+        <mat-icon class="modal-icon">update</mat-icon>
+        <div>
+          <h3>Reschedule Appointment</h3>
+          <p class="modal-sub">
+            Patient: <strong>{{ selectedApptForReschedule.patientName }}</strong> &bull; Dr. {{ selectedApptForReschedule.doctorName }}
+          </p>
+        </div>
+      </div>
+      <button mat-icon-button (click)="closeRescheduleModal()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <form (ngSubmit)="submitReschedule()" class="booking-form-body">
+      <div class="current-info-box">
+        <mat-icon>schedule</mat-icon>
+        <span>Current: {{ selectedApptForReschedule.appointmentDate | date:'mediumDate' }} at {{ selectedApptForReschedule.appointmentTime }}</span>
+      </div>
+
+      <!-- Date & Slot (Dropdown Format) -->
+      <div class="form-row-two">
+        <div class="form-group">
+          <label class="form-label">New Consultation Date *</label>
+          <input type="date" [(ngModel)]="rescheduleDate" name="rescheduleDate" (change)="onRescheduleDateChange()" class="modal-input" [min]="minBookingDate" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            New Time Slot *
+            <span *ngIf="isLoadingRescheduleSlots" style="font-size: 11px; color: #0284c7; font-weight: 500;">(Loading...)</span>
+          </label>
+          <select [(ngModel)]="rescheduleTime" name="rescheduleTime" class="modal-select" required>
+            <option value="" disabled *ngIf="rescheduleSlots.length === 0">
+              {{ isLoadingRescheduleSlots ? 'Checking slots...' : '-- Choose time slot --' }}
+            </option>
+            <option *ngFor="let slot of rescheduleSlots" 
+                    [value]="slot.slotLabel" 
+                    [disabled]="slot.isBooked">
+              {{ slot.slotLabel }} {{ slot.isBooked ? '(Booked)' : '' }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+            <!-- Reschedule Leave Warning Banner -->
+      <div class="modal-leave-alert-banner" *ngIf="currentRescheduleDoctorLeave">
+        <mat-icon>event_busy</mat-icon>
+        <div>
+          <strong>Doctor On Leave ({{ currentRescheduleDoctorLeave.leaveCategory === 'future' ? 'Full-Day Leave' : (currentRescheduleDoctorLeave.leaveCategory === 'half-day' ? 'Half-Day Leave (' + currentRescheduleDoctorLeave.halfDaySession + ')' : 'Short Leave') }})</strong>
+          <p>{{ currentRescheduleDoctorLeave.leaveType }}: <em>"{{ currentRescheduleDoctorLeave.reason }}"</em>. Rescheduling to blocked slots is not allowed.</p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Reason for Rescheduling</label>
+        <input type="text" [(ngModel)]="rescheduleReason" name="rescheduleReason" class="modal-input" placeholder="e.g. Patient requested morning slot">
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" mat-button (click)="closeRescheduleModal()">Cancel</button>
+        <button type="submit" mat-flat-button color="primary" [disabled]="isSubmittingReschedule || isCurrentRescheduleSlotBooked() || currentRescheduleDoctorLeave?.leaveCategory === 'future'">
+          <mat-icon>{{ isSubmittingReschedule ? 'sync' : 'check' }}</mat-icon>
+          {{ isSubmittingReschedule ? 'Updating...' : 'Save New Schedule' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

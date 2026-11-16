@@ -1,0 +1,278 @@
+<div class="split-auth-container">
+  <!-- LEFT PANE: BRANDING & DOCTOR BANNER (Matches Example Layout) -->
+  <div class="brand-hero-pane">
+    <div class="hero-overlay"></div>
+
+    <!-- Top Badge / Header -->
+    <div class="hero-top">
+    </div>
+
+    <!-- Bottom Branding & Tagline -->
+    <div class="hero-bottom">
+      <div class="brand-capsule">
+        <div class="capsule-icon">
+          <svg viewBox="0 0 48 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1" y="1" width="46" height="22" rx="11" fill="#0f172a" stroke="#ffffff33" stroke-width="1.5"/>
+            <path d="M1 12C1 5.92487 5.92487 1 12 1H24V23H12C5.92487 23 1 18.0751 1 12Z" fill="#38bdf8"/>
+            <circle cx="12" cy="12" r="3.5" fill="white"/>
+            <path d="M24 1H36C42.0751 1 47 5.92487 47 12C47 18.0751 42.0751 23 36 23H24V1Z" fill="#059669"/>
+            <path d="M35.5 8V16M31.5 12H39.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span class="brand-title">MEDICARE</span>
+      </div>
+
+      <p class="hero-quote"><b>
+        Compassionate care for every stage of life<br />
+        Your wellness, always our priority</b>
+        <br />
+      </p>
+    </div>
+  </div>
+
+  <!-- RIGHT PANE: AUTHENTICATION FORM -->
+  <div class="auth-form-pane">
+    <div class="auth-form-container" [class.registration-mode]="activeTab === 1">
+      
+      <!-- Top Brand Icon & Titles -->
+      <div class="form-header">
+        <div class="brand-pill-logo">
+          <svg viewBox="0 0 60 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1" y="1" width="58" height="28" rx="14" fill="#0f172a" stroke="#e2e8f0" stroke-width="2"/>
+            <path d="M1 15C1 7.26801 7.26801 1 15 1H30V29H15C7.26801 29 1 22.732 1 15Z" fill="#0284c7"/>
+            <circle cx="15" cy="15" r="4.5" fill="white"/>
+            <path d="M30 1H45C52.732 1 59 7.26801 59 15C59 22.732 52.732 29 45 29H30V1Z" fill="#10b981"/>
+            <path d="M44.5 9.5V20.5M39 15H50" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+
+        <h2 class="form-title">{{ activeTab === 0 ? 'Login' : 'Patient Registration' }}</h2>
+        <p class="form-subtitle">
+          {{ activeTab === 0 ? 'Log in to your clinical account' : 'Register your verified patient record' }}
+        </p>
+
+        <!-- Segmented Tab Switcher -->
+        <div class="segmented-pill-switcher">
+          <button type="button" 
+                  class="pill-tab" 
+                  [class.active]="activeTab === 0" 
+                  (click)="activeTab = 0">
+            <mat-icon>login</mat-icon>
+            <span>Sign In</span>
+          </button>
+          <button type="button" 
+                  class="pill-tab" 
+                  [class.active]="activeTab === 1" 
+                  (click)="activeTab = 1">
+            <mat-icon>person_add</mat-icon>
+            <span>Register as Patient</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 1: LOGIN FORM -->
+      <div *ngIf="activeTab === 0" class="auth-card-body fade-in">
+        <form [formGroup]="loginForm" (ngSubmit)="onLogin()" autocomplete="on">
+          
+          <!-- Email Field -->
+          <div class="form-group-custom">
+            <label class="field-label">Email</label>
+            <mat-form-field appearance="outline" class="w-100 modern-field">
+              <input matInput 
+                     formControlName="email" 
+                     type="email" 
+                     autocomplete="email"
+                     placeholder="Enter your email">
+              <mat-icon matPrefix class="field-icon">email</mat-icon>
+              <mat-error *ngIf="loginForm.get('email')?.hasError('required')">Email is required</mat-error>
+              <mat-error *ngIf="loginForm.get('email')?.hasError('email')">Please enter a valid email address</mat-error>
+            </mat-form-field>
+          </div>
+
+          <!-- Password Field -->
+          <div class="form-group-custom">
+            <div class="label-with-action">
+              <label class="field-label">Password</label>
+            </div>
+            <mat-form-field appearance="outline" class="w-100 modern-field">
+              <input matInput 
+                     [type]="hidePassword ? 'password' : 'text'" 
+                     formControlName="password"
+                     autocomplete="current-password"
+                     placeholder="Enter your password">
+              <mat-icon matPrefix class="field-icon">lock</mat-icon>
+              <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button" class="eye-toggle" tabindex="-1">
+                <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+              <mat-error *ngIf="loginForm.get('password')?.hasError('required')">Password is required</mat-error>
+            </mat-form-field>
+          </div>
+
+          <!-- Forgot Password Link -->
+          <div class="forgot-row">
+            <a href="javascript:void(0)" class="forgot-link" (click)="openForgotPassword()">
+              Forgot Password?
+            </a>
+          </div>
+
+          <!-- Submit Button (Centered & Full-Width Pill) -->
+          <div class="submit-btn-row">
+            <button mat-flat-button 
+                    class="btn-pill-primary" 
+                    type="submit" 
+                    [disabled]="loginForm.invalid || isLoading">
+              <span *ngIf="!isLoading" class="btn-content">
+                <span>Log In</span>
+                <mat-icon>arrow_forward</mat-icon>
+              </span>
+              <span *ngIf="isLoading" class="btn-content">
+                <mat-icon class="spinner-icon">sync</mat-icon>
+                <span>Authenticating...</span>
+              </span>
+            </button>
+          </div>
+
+          <!-- Quick Role Logins For Convenience -->
+          <div class="quick-roles-container" style="margin-top: 18px; padding-top: 14px; border-top: 1px dashed #cbd5e1; text-align: center;">
+            <p style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; font-weight: 600; margin-bottom: 8px;">
+              Quick Role Sign In (Demo):
+            </p>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;">
+              <button type="button" mat-stroked-button color="primary" style="font-size: 11px; height: 28px; line-height: 26px; border-radius: 14px; font-weight: 600;" (click)="fillQuickLogin('frontdesk@hospital.com', 'Frontdesk@123')">
+                <mat-icon style="font-size: 14px; height: 14px; width: 14px; margin-right: 2px;">desk</mat-icon> Front Desk
+              </button>
+              <button type="button" mat-stroked-button style="font-size: 11px; height: 28px; line-height: 26px; border-radius: 14px;" (click)="fillQuickLogin('nurse@hospital.com', 'Nurse@123')">
+                <mat-icon style="font-size: 14px; height: 14px; width: 14px; margin-right: 2px;">medical_services</mat-icon> Nurse
+              </button>
+              <button type="button" mat-stroked-button style="font-size: 11px; height: 28px; line-height: 26px; border-radius: 14px;" (click)="fillQuickLogin('doctor@hospital.com', 'Doctor@123')">
+                <mat-icon style="font-size: 14px; height: 14px; width: 14px; margin-right: 2px;">stethoscope</mat-icon> Doctor
+              </button>
+              <button type="button" mat-stroked-button style="font-size: 11px; height: 28px; line-height: 26px; border-radius: 14px;" (click)="fillQuickLogin('patient@hospital.com', 'Patient@123')">
+                <mat-icon style="font-size: 14px; height: 14px; width: 14px; margin-right: 2px;">person</mat-icon> Patient
+              </button>
+            </div>
+          </div>
+
+          <!-- Sign Up Switch Prompt -->
+          <div class="switch-auth-footer">
+            <span>Don't have an account?</span>
+            <a href="javascript:void(0)" class="switch-link" (click)="activeTab = 1">Sign Up</a>
+          </div>
+        </form>
+      </div>
+
+      <!-- TAB 2: PATIENT REGISTRATION FORM -->
+      <div *ngIf="activeTab === 1" class="auth-card-body fade-in">
+        <form [formGroup]="registerForm" (ngSubmit)="onRegister()" autocomplete="on">
+          
+          <!-- Row 1: Prefix, First Name, Last Name -->
+          <div class="form-row name-row">
+            <mat-form-field appearance="outline" class="col-prefix modern-field">
+              <mat-label>Prefix *</mat-label>
+              <mat-select formControlName="prefix" required>
+                <mat-option value="Mr.">Mr.</mat-option>
+                <mat-option value="Mrs.">Mrs.</mat-option>
+                <mat-option value="Ms.">Ms.</mat-option>
+                <mat-option value="Dr.">Dr.</mat-option>
+              </mat-select>
+              <mat-error *ngIf="registerForm.get('prefix')?.hasError('required')">Required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="col-fname modern-field">
+              <mat-label>First Name *</mat-label>
+              <input matInput formControlName="firstName" placeholder="First name" required>
+              <mat-icon matPrefix class="field-icon">person</mat-icon>
+              <mat-error *ngIf="registerForm.get('firstName')?.hasError('required')">First name required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="col-lname modern-field">
+              <mat-label>Last Name *</mat-label>
+              <input matInput formControlName="lastName" placeholder="Last name" required>
+              <mat-icon matPrefix class="field-icon">person_outline</mat-icon>
+              <mat-error *ngIf="registerForm.get('lastName')?.hasError('required')">Last name required</mat-error>
+            </mat-form-field>
+          </div>
+
+          <!-- Row 2: Date of Birth & Age -->
+          <div class="form-row two-col">
+            <mat-form-field appearance="outline" class="modern-field">
+              <mat-label>Date of Birth *</mat-label>
+              <input matInput [matDatepicker]="picker" formControlName="dob" (dateChange)="onDobChange($event)" placeholder="Select DOB" required>
+              <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+              <mat-datepicker #picker></mat-datepicker>
+              <mat-icon matPrefix class="field-icon">calendar_today</mat-icon>
+              <mat-error *ngIf="registerForm.get('dob')?.hasError('required')">DOB required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="modern-field">
+              <mat-label>Age *</mat-label>
+              <input matInput type="number" formControlName="age" min="0" max="125" placeholder="e.g. 28" required>
+              <mat-icon matPrefix class="field-icon">cake</mat-icon>
+              <mat-error *ngIf="registerForm.get('age')?.hasError('required')">Age required</mat-error>
+              <mat-error *ngIf="registerForm.get('age')?.hasError('min') || registerForm.get('age')?.hasError('max')">Valid age required</mat-error>
+            </mat-form-field>
+          </div>
+
+          <!-- Row 3: Phone & Aadhaar -->
+          <div class="form-row two-col">
+            <mat-form-field appearance="outline" class="modern-field">
+              <mat-label>Phone Number *</mat-label>
+              <input matInput formControlName="phoneNumber" placeholder="+91 9876543210" required>
+              <mat-icon matPrefix class="field-icon">phone</mat-icon>
+              <mat-error *ngIf="registerForm.get('phoneNumber')?.hasError('required')">Phone required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="modern-field">
+              <mat-label>Aadhaar Number *</mat-label>
+              <input matInput formControlName="adharNumber" placeholder="1234 5678 9012" required>
+              <mat-icon matPrefix class="field-icon">fingerprint</mat-icon>
+              <mat-error *ngIf="registerForm.get('adharNumber')?.hasError('required')">Aadhaar required</mat-error>
+            </mat-form-field>
+          </div>
+
+          <!-- Row 4: Email & Password -->
+          <div class="form-row two-col">
+            <mat-form-field appearance="outline" class="modern-field">
+              <mat-label>Email Address *</mat-label>
+              <input matInput formControlName="email" type="email" placeholder="patient@hospital.com" required>
+              <mat-icon matPrefix class="field-icon">email</mat-icon>
+              <mat-error *ngIf="registerForm.get('email')?.hasError('required')">Email required</mat-error>
+              <mat-error *ngIf="registerForm.get('email')?.hasError('email')">Invalid email</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="modern-field">
+              <mat-label>Password *</mat-label>
+              <input matInput [type]="hideRegPassword ? 'password' : 'text'" formControlName="password" placeholder="Min. 6 chars" required>
+              <mat-icon matPrefix class="field-icon">lock</mat-icon>
+              <button mat-icon-button matSuffix (click)="hideRegPassword = !hideRegPassword" type="button" tabindex="-1">
+                <mat-icon>{{ hideRegPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+              <mat-error *ngIf="registerForm.get('password')?.hasError('required')">Password required</mat-error>
+              <mat-error *ngIf="registerForm.get('password')?.hasError('minlength')">Min 6 characters</mat-error>
+            </mat-form-field>
+          </div>
+
+          <!-- Submit Button (Centered & Full-Width Pill) -->
+          <div class="submit-btn-row">
+            <button mat-flat-button class="btn-pill-primary register-submit-btn" type="submit" [disabled]="registerForm.invalid || isLoading">
+              <span *ngIf="!isLoading" class="btn-content">
+                <mat-icon>how_to_reg</mat-icon>
+                <span>Create Patient Profile</span>
+              </span>
+              <span *ngIf="isLoading" class="btn-content">
+                <mat-icon class="spinner-icon">sync</mat-icon>
+                <span>Creating Account...</span>
+              </span>
+            </button>
+          </div>
+
+          <div class="switch-auth-footer">
+            <span>Already have an account?</span>
+            <a href="javascript:void(0)" class="switch-link" (click)="activeTab = 0">Log In</a>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>

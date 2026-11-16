@@ -1,0 +1,531 @@
+    <div class="dashboard-layout">
+      <!-- TOP NAVBAR -->
+      <mat-toolbar color="primary" class="main-navbar">
+        <div class="nav-left">
+          <span class="material-icons logo-icon">health_and_safety</span>
+          <span class="portal-title">Nurse Care Portal</span>
+        </div>
+
+        <!-- Navigation Buttons per Prompt -->
+        <div class="nav-links">
+          <!-- 1. Patient Care & Vitals -->
+          <button mat-button [class.active-link]="currentView === 'active-appointments'" (click)="setView('active-appointments')">
+            <mat-icon>health_and_safety</mat-icon>
+            Patient Care & Vitals
+            <span class="counter-badge" *ngIf="activeAppointments.length > 0">{{ activeAppointments.length }}</span>
+          </button>
+
+          <!-- 2. Reschedule Appointments -->
+          <button mat-button [class.active-link]="currentView === 'reschedule-appointments'" (click)="setView('reschedule-appointments')">
+            <mat-icon>update</mat-icon>
+            Reschedule
+            <span class="counter-badge yellow" *ngIf="rescheduledAppointments.length > 0">{{ rescheduledAppointments.length }}</span>
+          </button>
+
+          <!-- 3. Completed Visits (Done) -->
+          <button mat-button [class.active-link]="currentView === 'done-appointments'" (click)="setView('done-appointments')">
+            <mat-icon>done_all</mat-icon>
+            Completed (Done)
+            <span class="counter-badge green" *ngIf="doneAppointments.length > 0">{{ doneAppointments.length }}</span>
+          </button>
+
+          <!-- 4. Patients (where all the patients will appear) -->
+          <button mat-button [class.active-link]="currentView === 'patients'" (click)="setView('patients')"><mat-icon>groups</mat-icon> Patients</button>
+          <button mat-flat-button class="nurse-ai-shift-btn" (click)="openNurseShiftReport()" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border-radius: 999px; margin-left: 12px; font-weight: 600;"><mat-icon>auto_awesome</mat-icon> AI Summary</button>
+        </div>
+
+        <!-- User Profile Dropdown -->
+        <div class="nav-right">
+          <button mat-button [matMenuTriggerFor]="profileMenu" class="profile-btn">
+            <div class="profile-chip">
+              <span class="material-icons avatar-icon">account_circle</span>
+              <div class="profile-meta">
+                <span class="user-name">{{ currentUser?.fullName || 'Nurse Emily Clark' }}</span>
+                <span class="user-role">{{ currentUser?.role }}</span>
+              </div>
+              <mat-icon class="dropdown-arrow">arrow_drop_down</mat-icon>
+            </div>
+          </button>
+
+          <mat-menu #profileMenu="matMenu">
+            <div class="menu-profile-card">
+              <p class="menu-name">{{ currentUser?.fullName }}</p>
+              <p class="menu-email">{{ currentUser?.email }}</p>
+              <span class="badge-role">{{ currentUser?.role }} {{ currentUser?.departmentName ? '• ' + currentUser?.departmentName : '' }}</span>
+            </div>
+            <mat-divider></mat-divider>
+            <button mat-menu-item (click)="openEditProfileModal()">
+              <mat-icon color="primary">edit</mat-icon>
+              <span>Edit Profile Details</span>
+            </button>
+            <mat-divider></mat-divider>
+            <button mat-menu-item (click)="logout()">
+              <mat-icon color="warn">logout</mat-icon>
+              <span>Sign Out</span>
+            </button>
+          </mat-menu>
+        </div>
+      </mat-toolbar>
+
+      <div class="dashboard-body">
+        <!-- NURSE SIDEBAR -->
+        <aside class="nurse-sidebar">
+          <div class="nurse-card">
+            <div class="nurse-photo-wrapper">
+              <div class="nurse-avatar-circle">
+                <mat-icon class="nurse-avatar-icon">medical_services</mat-icon>
+              </div>
+              <div class="online-indicator"></div>
+            </div>
+            
+            <h3 class="nurse-name">{{ currentUser?.fullName || 'Nurse Emily Clark' }}</h3>
+            <p class="nurse-title">{{ currentUser?.jobTitle || 'Senior Registered Nurse (RN)' }}</p>
+            <span class="nurse-dept-badge">{{ currentUser?.departmentName || 'Inpatient & Triage Care' }}</span>
+
+            <div class="nurse-info-list">
+              <div class="info-item">
+                <span class="material-icons">badge</span>
+                <span>Staff ID: #NUR-{{ currentUser?.userId || 202 }}</span>
+              </div>
+              <div class="info-item">
+                <span class="material-icons">mail</span>
+                <span>{{ currentUser?.email || 'nurse@hospital.com' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="material-icons">phone</span>
+                <span>{{ currentUser?.phoneNumber || 'Not provided' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="material-icons">schedule</span>
+                <span>{{ currentUser?.workSchedule || 'Day Shift (08:00 AM - 04:00 PM)' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="material-icons">local_pharmacy</span>
+                <span>{{ currentUser?.workLocation || 'Triage Desk & Vitals Station' }}</span>
+              </div>
+            </div>
+
+            <button type="button" mat-stroked-button class="btn-edit-profile" (click)="openEditProfileModal()">
+              <mat-icon>edit</mat-icon>
+              <span>Edit Details</span>
+            </button>
+          </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="main-content">
+
+          <!-- VIEW 1: ACTIVE APPOINTMENTS (Nurse records vitals & medical history, marks Done, or reschedules) -->
+          <div *ngIf="currentView === 'active-appointments'" class="content-section">
+            <div class="section-top">
+              <div>
+                <h2>Patient Clinical Care & Vitals</h2>
+                <p class="sub">Active appointments for clinical assessment. Review symptoms, record vital signs & medical history, and click <strong>Mark as Done</strong> once clinical care is completed.</p>
+              </div>
+            </div>
+
+            <div *ngIf="activeAppointments.length === 0" class="empty-card">
+              <span class="material-icons">task_alt</span>
+              <h3>No Pending Care Visits</h3>
+              <p>There are no active patient visits waiting for nursing triage or vitals at this time.</p>
+            </div>
+
+            <div class="appointment-cards-grid" *ngIf="activeAppointments.length > 0">
+              <div *ngFor="let appt of activeAppointments" class="appt-card confirmed-border">
+                <div class="appt-header">
+                  <div>
+                    <span class="badge-status status-approved">{{ appt.status }}</span>
+                    <h3>{{ appt.patientName }}</h3>
+                  </div>
+                  <span class="appt-date-chip">{{ appt.appointmentDate | date:'mediumDate' }} at {{ appt.appointmentTime }}</span>
+                </div>
+
+                <div class="appt-details">
+                  <p><strong>Assigned Doctor:</strong> Dr. {{ appt.doctorName }}</p>
+                  <p><strong>Chief Reason:</strong> {{ appt.reason || 'General Consultation' }}</p>
+                  <p *ngIf="appt.notes"><strong>Notes:</strong> {{ appt.notes }}</p>
+                  <p class="contact-info">{{ appt.patientPhone }} | {{ appt.patientEmail }}</p>
+                </div>
+
+                <div class="appt-actions active-card-actions">
+                  <button mat-stroked-button color="primary" class="btn-action-vitals" (click)="viewPatientById(appt.patientId, appt.appointmentId)">
+                    <mat-icon>health_and_safety</mat-icon>
+                    <span>Vitals & Medical History</span>
+                  </button>
+                  <div class="action-btn-row">
+                    <button mat-button class="btn-action-reschedule" (click)="openRescheduleCard(appt)">
+                      <mat-icon>update</mat-icon>
+                      <span>Reschedule</span>
+                    </button>
+                    <button mat-flat-button color="primary" class="btn-mark-done" (click)="markAppointmentDone(appt)">
+                      <mat-icon>check_circle</mat-icon>
+                      <span>Mark as Done</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- VIEW: COMPLETED APPOINTMENTS (DONE) -->
+          <div *ngIf="currentView === 'done-appointments'" class="content-section">
+            <div class="section-top">
+              <div>
+                <h2>Completed Patient Visits (Done)</h2>
+                <p class="sub">Appointments marked as Done by the nursing staff after triage and clinical care.</p>
+              </div>
+            </div>
+
+            <div *ngIf="doneAppointments.length === 0" class="empty-card">
+              <span class="material-icons">done_all</span>
+              <h3>No Completed Visits Yet</h3>
+              <p>Completed appointments will appear here after being marked as Done.</p>
+            </div>
+
+            <div class="appointment-cards-grid" *ngIf="doneAppointments.length > 0">
+              <div *ngFor="let appt of doneAppointments" class="appt-card" style="border-left: 5px solid #0284c7;">
+                <div class="appt-header">
+                  <div>
+                    <span class="badge-status status-done" style="background: #e0f2fe; color: #0369a1;">Done</span>
+                    <h3>{{ appt.patientName }}</h3>
+                  </div>
+                  <span class="appt-date-chip">{{ appt.appointmentDate | date:'mediumDate' }} at {{ appt.appointmentTime }}</span>
+                </div>
+
+                <div class="appt-details">
+                  <p><strong>Attending Doctor:</strong> Dr. {{ appt.doctorName }}</p>
+                  <p><strong>Consultation Reason:</strong> {{ appt.reason || 'General Consultation' }}</p>
+                  <p *ngIf="appt.notes"><strong>Outcome Notes:</strong> {{ appt.notes }}</p>
+                  <p class="contact-info">{{ appt.patientPhone }} | {{ appt.patientEmail }}</p>
+                </div>
+
+                <div class="appt-actions">
+                  <button mat-button color="primary" (click)="viewPatientById(appt.patientId, appt.appointmentId)">
+                    <mat-icon>person</mat-icon> View Full Record
+                  </button>
+                  <span style="font-size: 0.82rem; font-weight: 700; color: #0284c7; display: flex; align-items: center; gap: 4px;">
+                    <mat-icon style="font-size: 16px;">check</mat-icon> Care Completed
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- VIEW 2: RESCHEDULED APPOINTMENTS (Only appointments that have been rescheduled) -->
+          <div *ngIf="currentView === 'reschedule-appointments'" class="content-section">
+            <div class="section-top">
+              <div>
+                <h2>Rescheduled Appointments</h2>
+                <p class="sub">Appointments rescheduled by nursing staff and currently awaiting review or action by the attending doctor.</p>
+              </div>
+            </div>
+
+            <div *ngIf="rescheduledAppointments.length === 0" class="empty-card">
+              <span class="material-icons">event_busy</span>
+              <h3>No Rescheduled Appointments</h3>
+              <p>There are no appointments currently awaiting doctor confirmation after being rescheduled.</p>
+            </div>
+
+            <div class="appointment-cards-grid" *ngIf="rescheduledAppointments.length > 0">
+              <div *ngFor="let appt of rescheduledAppointments" class="appt-card rescheduled-border">
+                <div class="appt-header">
+                  <div>
+                    <span class="badge-status status-rescheduled">Rescheduled</span>
+                    <h3>{{ appt.patientName }}</h3>
+                  </div>
+                  <span class="appt-date-chip">{{ appt.appointmentDate | date:'mediumDate' }} at {{ appt.appointmentTime }}</span>
+                </div>
+
+                <div class="appt-details">
+                  <p><strong>Doctor:</strong> {{ appt.doctorName }}</p>
+                  <p><strong>Reason:</strong> {{ appt.reason || 'Rescheduled consultation' }}</p>
+                  <p *ngIf="appt.notes"><strong>Details:</strong> {{ appt.notes }}</p>
+                  <p class="contact-info" *ngIf="appt.patientPhone || appt.patientEmail">{{ appt.patientPhone }} | {{ appt.patientEmail }}</p>
+                </div>
+
+                <div class="appt-actions">
+                  <button mat-button color="primary" (click)="viewPatientById(appt.patientId, appt.appointmentId)">
+                    <mat-icon>person</mat-icon> Patient Details
+                  </button>
+                  <button mat-stroked-button color="accent" style="border-radius: 8px; font-weight: 600;" (click)="openRescheduleCard(appt)">
+                    <mat-icon>edit_calendar</mat-icon> Adjust Slot
+                  </button>
+                  <span class="badge-status status-rescheduled">
+                    <mat-icon style="font-size: 16px; vertical-align: middle;">hourglass_top</mat-icon> Waiting for Doctor Action
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- VIEW 3 & 4: PATIENTS / MY PATIENTS (PAGINATED DIRECTORY WITH 3-SECTION DETAILS) -->
+          <div *ngIf="currentView === 'patients' || currentView === 'my-patients'" class="content-section">
+            <div class="section-top">
+              <div>
+                <h2>{{ currentView === 'patients' ? 'All Hospital Patients' : 'My Assigned Patients' }}</h2>
+                <p class="sub">Click on any patient to view details, monitor vitals, and add clinical notes.</p>
+              </div>
+
+              <div class="search-box">
+                <mat-form-field appearance="outline" class="search-input">
+                  <mat-label>Search patients...</mat-label>
+                  <input matInput [(ngModel)]="searchTerm" (keyup.enter)="onSearch()" (input)="onSearchInput()" placeholder="Search by name, ID, phone, Aadhaar, symptoms...">
+                  <button mat-icon-button matSuffix *ngIf="searchTerm" (click)="clearSearch()" title="Clear Search">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                  <button mat-icon-button matSuffix (click)="onSearch()" title="Search">
+                    <mat-icon>search</mat-icon>
+                  </button>
+                </mat-form-field>
+              </div>
+            </div>
+
+            <mat-card class="table-card">
+              <!-- Loading Spinner -->
+              <div *ngIf="isLoadingPatients" class="loading-state-box">
+                <mat-spinner diameter="36"></mat-spinner>
+                <p>Loading patient directory from database...</p>
+              </div>
+
+              <!-- Connection Error State with Retry Button -->
+              <div *ngIf="patientLoadError && !isLoadingPatients" class="error-banner">
+                <mat-icon color="warn">cloud_off</mat-icon>
+                <div class="err-text">
+                  <strong>Backend Connection Issue</strong>
+                  <p>{{ patientLoadError }}</p>
+                </div>
+                <button mat-stroked-button color="primary" (click)="loadPatients()">
+                  <mat-icon>refresh</mat-icon> Retry
+                </button>
+              </div>
+
+              <!-- Patient Table (Shown when not loading and no error) -->
+              <div *ngIf="!isLoadingPatients && !patientLoadError">
+                <table mat-table [dataSource]="patients" class="w-100 patient-table">
+                  <ng-container matColumnDef="id">
+                    <th mat-header-cell *matHeaderCellDef class="col-id">ID</th>
+                    <td mat-cell *matCellDef="let p" class="col-id cell-id">#{{ p.patientID }}</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="name">
+                    <th mat-header-cell *matHeaderCellDef class="col-name">Patient Name</th>
+                    <td mat-cell *matCellDef="let p" class="col-name clickable-name" (click)="navigateToPatientDetails(p.patientID)">
+                      <strong>{{ p.prefix }} {{ p.firstName }} {{ p.lastName }}</strong>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="contact">
+                    <th mat-header-cell *matHeaderCellDef class="col-contact">Contact Info</th>
+                    <td mat-cell *matCellDef="let p" class="col-contact">
+                      <div class="contact-phone">{{ p.phoneNumber }}</div>
+                      <div class="contact-email">{{ p.email }}</div>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="adhar">
+                    <th mat-header-cell *matHeaderCellDef class="col-adhar">Aadhaar / ID</th>
+                    <td mat-cell *matCellDef="let p" class="col-adhar cell-adhar">{{ p.adharNumber }}</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="age">
+                    <th mat-header-cell *matHeaderCellDef class="col-age">Age</th>
+                    <td mat-cell *matCellDef="let p" class="col-age cell-age">{{ p.age }} Yrs</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="problem">
+                    <th mat-header-cell *matHeaderCellDef class="col-problem">Symptoms / Complaint</th>
+                    <td mat-cell *matCellDef="let p" class="col-problem">
+                      <span class="problem-pill">{{ p.problem || 'General Checkup' }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef class="col-actions th-actions">Medical Chart</th>
+                    <td mat-cell *matCellDef="let p" class="col-actions td-actions">
+                      <button mat-flat-button color="accent" class="btn-ai-summary" (click)="openAiSummary(p)" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; margin-right: 8px; border-radius: 8px;"><mat-icon>auto_awesome</mat-icon><span>AI Summary</span></button>
+                      <button mat-flat-button class="btn-view-chart" (click)="navigateToPatientDetails(p.patientID)">
+                        <mat-icon>monitor_heart</mat-icon>
+                        <span>View Full Chart</span>
+                      </button>
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="patientColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: patientColumns;"></tr>
+                </table>
+
+                <div *ngIf="patients.length === 0" class="empty-directory-box">
+                  <mat-icon>person_search</mat-icon>
+                  <h4>No Patients Found</h4>
+                  <p>No active patient records match your search criteria.</p>
+                </div>
+
+                <mat-paginator
+                  [length]="totalPatients"
+                  [pageSize]="pageSize"
+                  [pageIndex]="pageNumber - 1"
+                  [pageSizeOptions]="[5, 10, 25, 50]"
+                  (page)="onPageChange($event)">
+                </mat-paginator>
+              </div>
+            </mat-card>
+          </div>
+
+        </main>
+      </div>
+    </div>
+      <!-- POPUP CARD: RESCHEDULE DATE & TIME SELECTION (Globally accessible across all views) -->
+      <div class="reschedule-modal-backdrop" *ngIf="selectedApptForReschedule" (click)="closeRescheduleCard()">
+        <div class="reschedule-card-dialog" (click)="$event.stopPropagation()">
+          <div class="dialog-header">
+            <div class="dialog-title-meta">
+              <div class="icon-avatar">
+                <mat-icon>edit_calendar</mat-icon>
+              </div>
+              <div>
+                <h3>Reschedule Appointment</h3>
+                <p class="meta-patient">Patient: <strong>{{ selectedApptForReschedule.patientName }}</strong> &bull; Dr. {{ selectedApptForReschedule.doctorName }}</p>
+              </div>
+            </div>
+            <button type="button" class="btn-close-dialog" (click)="closeRescheduleCard()" title="Close dialog" aria-label="Close dialog">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+
+          <div class="current-schedule-banner">
+            <mat-icon>schedule</mat-icon>
+            <div>
+              <span class="sched-label">Current Scheduled Time:</span>
+              <strong>{{ selectedApptForReschedule.appointmentDate | date:'fullDate' }} at {{ selectedApptForReschedule.appointmentTime }}</strong>
+            </div>
+          </div>
+
+          <form class="reschedule-form-body" (ngSubmit)="submitReschedule()">
+            <!-- New Date -->
+            <div class="form-row">
+              <label class="input-label">
+                <mat-icon>event</mat-icon> New Consultation Date
+              </label>
+              <input type="date" [(ngModel)]="rescheduleDate" (change)="onRescheduleDateChange()" name="rescheduleDate" class="modern-input" [min]="minRescheduleDate" required>
+            </div>
+
+            <!-- Doctor On Leave Alert Banner -->
+            <div *ngIf="currentDoctorLeaveForReschedule" class="date-fully-booked-banner leave-warning-banner">
+              <mat-icon>event_busy</mat-icon>
+              <div>
+                <strong>Doctor On Leave on Selected Date</strong>
+                <p>
+                  Dr. {{ selectedApptForReschedule.doctorName }} is on 
+                  <strong>{{ currentDoctorLeaveForReschedule.leaveCategory === 'future' ? 'Full-Day Leave' : (currentDoctorLeaveForReschedule.leaveCategory === 'half-day' ? 'Half-Day Leave (' + currentDoctorLeaveForReschedule.halfDaySession + ')' : 'Short Leave (' + currentDoctorLeaveForReschedule.startTime + ' - ' + currentDoctorLeaveForReschedule.endTime + ')') }}</strong>
+                  ({{ currentDoctorLeaveForReschedule.leaveType }}):
+                  <em>"{{ currentDoctorLeaveForReschedule.reason }}"</em>.
+                  Rescheduling on this date/time is locked.
+                </p>
+              </div>
+            </div>
+
+            <!-- Date Fully Booked Alert -->
+            <div *ngIf="!isLoadingRescheduleSlots && rescheduleSlots.length > 0 && availableSlotsCount === 0" class="date-fully-booked-banner">
+              <mat-icon>event_busy</mat-icon>
+              <div>
+                <strong>Date Fully Booked</strong>
+                <p>All time slots on {{ rescheduleDate | date:'mediumDate' }} are already booked for Dr. {{ selectedApptForReschedule.doctorName }}. Please select another date.</p>
+              </div>
+            </div>
+
+            <!-- New Time Slot with Live Availability & Booked Exclusion -->
+            <div class="form-row">
+              <label class="input-label">
+                <mat-icon>access_time</mat-icon> New Consultation Time
+                <span *ngIf="isLoadingRescheduleSlots" class="loading-slots-chip">
+                  <mat-spinner diameter="14"></mat-spinner> Checking availability...
+                </span>
+                <span *ngIf="!isLoadingRescheduleSlots && rescheduleSlots.length > 0 && availableSlotsCount > 0" class="slots-avail-tag">
+                  {{ availableSlotsCount }} of {{ rescheduleSlots.length }} slots available
+                </span>
+              </label>
+              <select [(ngModel)]="rescheduleTime" name="rescheduleTime" class="modern-input modern-select" required>
+                <option value="" disabled *ngIf="rescheduleSlots.length === 0">
+                  {{ isLoadingRescheduleSlots ? 'Checking doctor availability...' : '-- No Slots Available --' }}
+                </option>
+                <option *ngFor="let slot of rescheduleSlots"
+                        [value]="slot.slotLabel"
+                        [disabled]="slot.isBooked && slot.appointmentId !== selectedApptForReschedule.appointmentId">
+                  {{ slot.slotLabel }} {{ (slot.isBooked && slot.appointmentId !== selectedApptForReschedule.appointmentId) ? '⛔ (Already Booked)' : (slot.appointmentId === selectedApptForReschedule.appointmentId ? '📌 (Current Slot)' : '✓ (Available)') }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Reason for Rescheduling -->
+            <div class="form-row">
+              <label class="input-label">
+                <mat-icon>notes</mat-icon> Reason for Rescheduling (Optional)
+              </label>
+              <textarea [(ngModel)]="rescheduleReason" name="rescheduleReason" rows="3" class="modern-input modern-textarea" placeholder="e.g. Patient requested morning slot, Doctor availability shift..."></textarea>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="dialog-footer">
+              <button type="button" mat-stroked-button (click)="closeRescheduleCard()" [disabled]="isSubmittingReschedule">
+                Cancel
+              </button>
+              <button type="submit" mat-flat-button color="primary" class="btn-confirm-submit" [disabled]="isSubmittingReschedule || !rescheduleDate || !rescheduleTime || isCurrentRescheduleSlotBooked() || availableSlotsCount === 0 || currentDoctorLeaveForReschedule?.leaveCategory === 'future'">
+                <mat-spinner diameter="18" *ngIf="isSubmittingReschedule"></mat-spinner>
+                <mat-icon *ngIf="!isSubmittingReschedule">send</mat-icon>
+                <span>{{ isSubmittingReschedule ? 'Rescheduling...' : 'Submit & Forward to Doctor' }}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- AI CLINICAL BRIEF MODAL / OVERLAY FOR NURSE -->
+      <div *ngIf="showAiModal" class="ai-modal-backdrop" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+        <div class="ai-modal-card" style="background: white; width: 100%; max-width: 850px; max-height: 85vh; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); display: flex; flex-direction: column; overflow: hidden; border: 1px solid #e2e8f0;">
+          
+          <!-- Modal Header -->
+          <div style="padding: 18px 24px; background: linear-gradient(135deg, #065f46 0%, #047857 100%); color: white; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <mat-icon style="color: #6ee7b7;">psychology</mat-icon>
+              <div>
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700;">Nurse Triage & Clinical Brief (GPT-OSS 120B)</h3>
+                <span style="font-size: 0.82rem; opacity: 0.9;">Patient: {{ selectedPatientForAi?.prefix }} {{ selectedPatientForAi?.firstName }} {{ selectedPatientForAi?.lastName }} (ID: #{{ selectedPatientForAi?.patientID }})</span>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span *ngIf="isAiGenerating" style="font-size: 0.75rem; background: #064e3b; color: #a7f3d0; padding: 3px 10px; border-radius: 999px;">Streaming Live...</span>
+              <button mat-icon-button (click)="closeAiModal()" style="color: white;">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <!-- Modal Body -->
+          <div style="padding: 24px; overflow-y: auto; flex: 1; background: #f8fafc;">
+            <div *ngIf="aiError" style="color: #dc2626; padding: 12px; background: #fee2e2; border-radius: 8px; margin-bottom: 12px;">
+              <mat-icon style="vertical-align: middle; font-size: 18px;">error</mat-icon> {{ aiError }}
+            </div>
+
+            <div *ngIf="!aiSummary && isAiGenerating" style="display: flex; align-items: center; gap: 12px; padding: 20px 0; color: #475569;">
+              <mat-spinner diameter="28"></mat-spinner>
+              <span>Scanning patient chart, vitals records, and active medical history...</span>
+            </div>
+
+            <div *ngIf="aiSummary" class="ai-summary-rendered-content" [innerHTML]="renderedAiSummary" style="background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; line-height: 1.65;"></div>
+          </div>
+
+          <!-- Modal Footer -->
+          <div style="padding: 14px 24px; background: white; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px;">
+            <button mat-stroked-button (click)="closeAiModal()">Close</button>
+            <button mat-flat-button color="primary" (click)="navigateToPatientDetails(selectedPatientForAi?.patientID!)">Open Full Medical Chart</button>
+          </div>
+        </div>
+      </div>
+
+      <app-edit-staff-profile-modal
+        [isOpen]="showEditProfileModal"
+        [user]="currentUser"
+        theme="nurse"
+        (closed)="closeEditProfileModal()"
+        (saved)="onProfileSaved($event)">
+      </app-edit-staff-profile-modal>

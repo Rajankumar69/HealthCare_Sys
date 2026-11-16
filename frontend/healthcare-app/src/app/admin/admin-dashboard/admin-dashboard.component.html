@@ -1,0 +1,584 @@
+<div class="admin-layout">
+
+  <header class="admin-navbar">
+    <div class="navbar-brand">
+      <div class="brand-icon">
+        <mat-icon>admin_panel_settings</mat-icon>
+      </div>
+      <div>
+        <h2>HealthCare Admin</h2>
+        <span class="subtext">Hospital User Management</span>
+      </div>
+    </div>
+
+    <!-- Section Navigation Buttons on Navbar -->
+    <div class="navbar-actions">
+      <button type="button" 
+              class="nav-tab-btn" 
+              [class.active]="activeTab === 'doctors'" 
+              (click)="switchTab('doctors')">
+        <mat-icon>medical_services</mat-icon>
+        <span>Doctors ({{ doctors.length }})</span>
+      </button>
+
+      <button type="button" 
+              class="nav-tab-btn" 
+              [class.active]="activeTab === 'nurses'" 
+              (click)="switchTab('nurses')">
+        <mat-icon>local_hospital</mat-icon>
+        <span>Nurses ({{ nurses.length }})</span>
+      </button>
+
+      <button type="button" 
+              class="nav-tab-btn" 
+              [class.active]="activeTab === 'patients'" 
+              (click)="switchTab('patients')">
+        <mat-icon>people</mat-icon>
+        <span>Patients ({{ patients.length }})</span>
+      </button>
+
+      <!-- Global Search Assistant Chat Button -->
+      <button type="button" class="btn-global-search" (click)="openGlobalSearchChat()">
+        <mat-icon>manage_search</mat-icon>
+        <span>Global Search AI</span>
+      </button>
+
+      <!-- Add User Button on Navbar -->
+      <button type="button" class="btn-add-user" (click)="openAddUserModal()">
+        <mat-icon>person_add</mat-icon>
+        <span>+ Add User</span>
+      </button>
+
+      <!-- Logout Button on Navbar -->
+      <button type="button" class="btn-logout" (click)="logout()" title="Logout">
+        <mat-icon>logout</mat-icon>
+        <span>Logout</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="dashboard-body">
+
+    <!-- Loading Indicator -->
+    <div *ngIf="isLoading" class="loading-state">
+      <mat-icon class="spin">sync</mat-icon>
+      <span>Loading users from database...</span>
+    </div>
+
+    <div *ngIf="!isLoading && activeTab === 'doctors'" class="split-view">
+      
+      <!-- Left Column: Doctors List -->
+      <div class="list-column">
+        <div class="column-header">
+          <h3>Doctors List</h3>
+          <span class="badge">{{ doctors.length }} Doctors</span>
+        </div>
+
+        <div class="cards-list">
+          <div *ngFor="let doc of doctors" 
+               class="user-card" 
+               [class.selected]="selectedDoctor?.userId === doc.userId"
+               (click)="selectDoctor(doc)">
+            
+            <div class="card-avatar doc-avatar">
+              <mat-icon>medical_services</mat-icon>
+            </div>
+
+            <div class="card-info">
+              <h4>{{ doc.fullName }}</h4>
+              <p class="dept"><mat-icon>domain</mat-icon> {{ doc.departmentName || 'Cardiology' }}</p>
+              <p class="contact"><mat-icon>email</mat-icon> {{ doc.email }}</p>
+              <p class="contact"><mat-icon>phone</mat-icon> {{ doc.phoneNumber || 'N/A' }}</p>
+              <div class="pill-row">
+                <span class="count-pill">{{ doc.patients?.length || 0 }} Assigned Patients</span>
+              </div>
+            </div>
+
+            <button type="button" class="btn-delete" (click)="$event.stopPropagation(); deleteUser(doc.userId, 'Doctor', doc.fullName)" title="Delete Doctor">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+
+          <div *ngIf="doctors.length === 0" class="empty-state">
+            <mat-icon>group_off</mat-icon>
+            <p>No doctors found in database.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Selected Doctor Details & Respective Patients Below -->
+      <div class="details-column">
+        <div *ngIf="selectedDoctor" class="details-wrapper">
+          
+          <!-- Doctor Detail Box -->
+          <div class="profile-card">
+            <div class="profile-header">
+              <div class="profile-avatar doc-avatar">
+                <mat-icon>medical_services</mat-icon>
+              </div>
+              <div class="profile-title">
+                <h2>{{ selectedDoctor.fullName }}</h2>
+                <span class="role-badge">Doctor - {{ selectedDoctor.departmentName }}</span>
+              </div>
+            </div>
+
+            <div class="profile-grid">
+              <div class="grid-item">
+                <span class="label">Email Address</span>
+                <span class="value">{{ selectedDoctor.email }}</span>
+              </div>
+              <div class="grid-item">
+                <span class="label">Phone Number</span>
+                <span class="value">{{ selectedDoctor.phoneNumber || 'Not provided' }}</span>
+              </div>
+              <div class="grid-item">
+                <span class="label">Specialty / Department</span>
+                <span class="value">{{ selectedDoctor.departmentName }}</span>
+              </div>
+              <div class="grid-item">
+                <span class="label">Account Status</span>
+                <span class="value status-active">Active in Database</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Respective Patients Appearing Below Doctor Details -->
+          <div class="related-section">
+            <div class="related-header">
+              <mat-icon>people_alt</mat-icon>
+              <h3>Respective Patients for {{ selectedDoctor.fullName }}</h3>
+              <span class="count-badge">{{ (selectedDoctor?.patients || []).length }} Patients</span>
+            </div>
+
+            <div *ngIf="(selectedDoctor?.patients || []).length > 0" class="table-container">
+              <table class="simple-table">
+                <thead>
+                  <tr>
+                    <th>Patient Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Appointment Date</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th>Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let p of (selectedDoctor?.patients || [])">
+                    <td class="font-bold">{{ p.patientName }}</td>
+                    <td>{{ p.email }}</td>
+                    <td>{{ p.phoneNumber || 'N/A' }}</td>
+                    <td>{{ p.appointmentDate || 'Upcoming' }}</td>
+                    <td>{{ p.appointmentTime || '--' }}</td>
+                    <td>
+                      <span class="status-pill" [ngClass]="p.status?.toLowerCase()">
+                        {{ p.status || 'Active' }}
+                      </span>
+                    </td>
+                    <td>{{ p.reason || 'General Consultation' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div *ngIf="(selectedDoctor?.patients || []).length === 0" class="empty-related">
+              <mat-icon>person_search</mat-icon>
+              <p>No patients currently assigned to Dr. {{ selectedDoctor.fullName }}.</p>
+            </div>
+          </div>
+
+        </div>
+
+        <div *ngIf="!selectedDoctor" class="empty-select">
+          <mat-icon>touch_app</mat-icon>
+          <p>Click on any Doctor from the left to view their details and respective patients.</p>
+        </div>
+      </div>
+    </div>
+    <div *ngIf="!isLoading && activeTab === 'nurses'" class="split-view">
+      
+      <!-- Left Column: Nurses List -->
+      <div class="list-column">
+        <div class="column-header">
+          <h3>Nurses List</h3>
+          <span class="badge">{{ nurses.length }} Nurses</span>
+        </div>
+
+        <div class="cards-list">
+          <div *ngFor="let nurse of nurses" 
+               class="user-card" 
+               [class.selected]="selectedNurse?.userId === nurse.userId"
+               (click)="selectNurse(nurse)">
+            
+            <div class="card-avatar nurse-avatar">
+              <mat-icon>local_hospital</mat-icon>
+            </div>
+
+            <div class="card-info">
+              <h4>{{ nurse.fullName }}</h4>
+              <p class="dept"><mat-icon>domain</mat-icon> {{ nurse.departmentName || 'Nursing Care' }}</p>
+              <p class="contact"><mat-icon>email</mat-icon> {{ nurse.email }}</p>
+              <p class="contact"><mat-icon>phone</mat-icon> {{ nurse.phoneNumber || 'N/A' }}</p>
+              <div class="pill-row">
+                <span class="count-pill nurse-pill">{{ nurse.patients?.length || 0 }} Attended Patients</span>
+              </div>
+            </div>
+
+            <button type="button" class="btn-delete" (click)="$event.stopPropagation(); deleteUser(nurse.userId, 'Nurse', nurse.fullName)" title="Delete Nurse">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+
+          <div *ngIf="nurses.length === 0" class="empty-state">
+            <mat-icon>group_off</mat-icon>
+            <p>No nurses found in database.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Selected Nurse Details & Respective Patients Below -->
+      <div class="details-column">
+        <div *ngIf="selectedNurse" class="details-wrapper">
+          
+          <!-- Nurse Detail Box -->
+          <div class="profile-card">
+            <div class="profile-header">
+              <div class="profile-avatar nurse-avatar">
+                <mat-icon>health_and_safety</mat-icon>
+              </div>
+              <div class="profile-title">
+                <h2>{{ selectedNurse.fullName }}</h2>
+                <span class="role-badge nurse-badge">Nurse - {{ selectedNurse.departmentName }}</span>
+              </div>
+            </div>
+
+            <div class="profile-grid">
+              <div class="grid-item">
+                <span class="label">Email Address</span>
+                <span class="value">{{ selectedNurse.email }}</span>
+              </div>
+              <div class="grid-item">
+                <span class="label">Phone Number</span>
+                <span class="value">{{ selectedNurse.phoneNumber || 'Not provided' }}</span>
+              </div>
+              <div class="grid-item">
+                <span class="label">Ward / Department</span>
+                <span class="value">{{ selectedNurse.departmentName }}</span>
+              </div>
+              <div class="grid-item">
+                <span class="label">Account Status</span>
+                <span class="value status-active">Active in Database</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Respective Patients Appearing Below Nurse Details -->
+          <div class="related-section">
+            <div class="related-header">
+              <mat-icon>monitor_heart</mat-icon>
+              <h3>Patients Attended / Monitored by {{ selectedNurse.fullName }}</h3>
+              <span class="count-badge nurse-count">{{ (selectedNurse?.patients || []).length }} Patients</span>
+            </div>
+
+            <div *ngIf="(selectedNurse?.patients || []).length > 0" class="table-container">
+              <table class="simple-table">
+                <thead>
+                  <tr>
+                    <th>Patient Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Blood Pressure</th>
+                    <th>Heart Rate</th>
+                    <th>Temperature</th>
+                    <th>Recorded On</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let p of (selectedNurse?.patients || [])">
+                    <td class="font-bold">{{ p.patientName }}</td>
+                    <td>{{ p.email }}</td>
+                    <td>{{ p.phoneNumber || 'N/A' }}</td>
+                    <td><span class="vital-badge">{{ p.bloodPressure || '120/80' }}</span></td>
+                    <td>{{ p.heartRate ? p.heartRate + ' bpm' : '--' }}</td>
+                    <td>{{ p.temperature ? p.temperature + ' °F' : '--' }}</td>
+                    <td>{{ p.recordedDate || 'Recent' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div *ngIf="(selectedNurse?.patients || []).length === 0" class="empty-related">
+              <mat-icon>assignment_late</mat-icon>
+              <p>No vitals recorded by Nurse {{ selectedNurse.fullName }} yet.</p>
+            </div>
+          </div>
+
+        </div>
+
+        <div *ngIf="!selectedNurse" class="empty-select">
+          <mat-icon>touch_app</mat-icon>
+          <p>Click on any Nurse from the left to view their details and respective patients.</p>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!isLoading && activeTab === 'patients'" class="full-view">
+      <div class="full-header">
+        <div>
+          <h3>All Registered Patients</h3>
+          <p class="subtitle">Complete patient roster with their assigned doctors</p>
+        </div>
+        <span class="badge">{{ patients.length }} Total Patients</span>
+      </div>
+
+      <div class="table-container">
+        <table class="simple-table">
+          <thead>
+            <tr>
+              <th>Patient Name</th>
+              <th>Gender / Age</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Problem / Symptoms</th>
+              <th>Assigned Doctor</th>
+              <th>Appointment Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of patients">
+              <td class="font-bold">{{ p.fullName }}</td>
+              <td>{{ p.gender }} ({{ p.age }} yrs)</td>
+              <td>{{ p.email }}</td>
+              <td>{{ p.phoneNumber || 'N/A' }}</td>
+              <td>
+                <span class="problem-text" [title]="p.problem || 'Routine Checkup'">
+                  {{ p.problem || 'Routine Checkup' }}
+                </span>
+              </td>
+              <td>
+                <div *ngIf="p.assignedDoctor" class="doc-link">
+                  <mat-icon>medical_services</mat-icon>
+                  <span>{{ p.assignedDoctor }}</span>
+                </div>
+                <span *ngIf="!p.assignedDoctor" class="text-muted">Not Booked</span>
+              </td>
+              <td>
+                <span *ngIf="p.appointmentStatus" class="status-pill" [ngClass]="p.appointmentStatus.toLowerCase()">
+                  {{ p.appointmentStatus }}
+                </span>
+                <span *ngIf="!p.appointmentStatus" class="text-muted">--</span>
+              </td>
+              <td>
+                <button type="button" 
+                        class="btn-delete-row" 
+                        (click)="deleteUser(p.userId || p.patientId, 'Patient', p.fullName)"
+                        title="Delete Patient">
+                  <mat-icon>delete</mat-icon>
+                  <span>Delete</span>
+                </button>
+              </td>
+            </tr>
+
+            <tr *ngIf="patients.length === 0">
+              <td colspan="8" class="text-center py-4">No patients registered in the database.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <div *ngIf="showAddUserModal" class="modal-backdrop" (click)="closeAddUserModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      
+      <div class="modal-header">
+        <div class="modal-title-row">
+          <mat-icon>person_add</mat-icon>
+          <h3>Add New User to Database</h3>
+        </div>
+        <button type="button" class="btn-close" (click)="closeAddUserModal()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <form [formGroup]="userForm" (ngSubmit)="submitNewUser()">
+        <div class="modal-body">
+          
+          <!-- Role Selector -->
+          <div class="form-group">
+            <label class="form-label">User Role *</label>
+            <select formControlName="role" class="form-select">
+              <option value="Doctor">Doctor</option>
+              <option value="Nurse">Nurse</option>
+              <option value="FrontDesk">Front Desk</option>
+              <option value="Patient">Patient</option>
+            </select>
+          </div>
+
+          <!-- Full Name -->
+          <div class="form-group">
+            <label class="form-label">Full Name *</label>
+            <input type="text" formControlName="fullName" class="form-input" placeholder="e.g. Dr. John Doe or Jane Smith">
+          </div>
+
+          <!-- Email -->
+          <div class="form-group">
+            <label class="form-label">Email Address *</label>
+            <input type="email" formControlName="email" class="form-input" placeholder="e.g. john@hospital.com">
+          </div>
+
+          <!-- Password -->
+          <div class="form-group">
+            <label class="form-label">Password * (Min 6 chars)</label>
+            <input type="password" formControlName="password" class="form-input" placeholder="Enter secure password">
+          </div>
+
+          <!-- Phone Number -->
+          <div class="form-group">
+            <label class="form-label">Phone Number *</label>
+            <input type="text" formControlName="phoneNumber" class="form-input" placeholder="e.g. +91 9876543210">
+          </div>
+
+          <!-- Department for Doctor or Nurse -->
+          <div *ngIf="userForm.get('role')?.value !== 'Patient'" class="form-group">
+            <label class="form-label">Department *</label>
+            <select formControlName="departmentId" class="form-select">
+              <option *ngFor="let d of departments" [value]="d.id">{{ d.name }}</option>
+            </select>
+          </div>
+
+          <!-- Extra Fields if Patient -->
+          <div *ngIf="userForm.get('role')?.value === 'Patient'" class="patient-extra-fields">
+            <div class="form-row">
+              <div class="form-group col">
+                <label class="form-label">Gender</label>
+                <select formControlName="gender" class="form-select">
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div class="form-group col">
+                <label class="form-label">Age</label>
+                <input type="number" formControlName="age" class="form-input" placeholder="e.g. 35">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Problem / Chief Complaint</label>
+              <input type="text" formControlName="problem" class="form-input" placeholder="e.g. Fever, chest pain, back ache">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Medical History</label>
+              <input type="text" formControlName="anyMedicalHistory" class="form-input" placeholder="e.g. Diabetes, Hypertension, None">
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" (click)="closeAddUserModal()">Cancel</button>
+          <button type="submit" class="btn-save" [disabled]="userForm.invalid || isSavingUser">
+            <span *ngIf="!isSavingUser">Save User to Database</span>
+            <span *ngIf="isSavingUser">Saving...</span>
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- FLOATING ACTION BUTTON (GLOBAL SEARCH AI) -->
+  <button type="button" class="fab-global-search" (click)="openGlobalSearchChat()" title="Open Global Search Assistant">
+    <mat-icon>psychology</mat-icon>
+    <span class="fab-label">Global Search Assistant</span>
+  </button>
+
+  <!-- GLOBAL SEARCH CHAT MODAL -->
+  <div class="chat-modal-backdrop" *ngIf="showGlobalSearchModal" (click)="closeGlobalSearchChat()">
+    <div class="chat-modal-container" (click)="$event.stopPropagation()">
+      
+      <!-- Modal Header -->
+      <div class="chat-header">
+        <div class="chat-title-group">
+          <div class="chat-avatar-badge">
+            <mat-icon>smart_toy</mat-icon>
+          </div>
+          <div>
+            <h3>Hospital Global Intelligence & Search</h3>
+            <p>Sub-second querying & analytics across 700+ GB data</p>
+          </div>
+        </div>
+        <button type="button" class="chat-close-btn" (click)="closeGlobalSearchChat()" title="Close Assistant">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <!-- Quick Prompt Suggestions Chips -->
+      <div class="chat-quick-prompts">
+        <span class="prompt-chip" (click)="applyQuickPrompt('what are the number of patiens Dr is attending?')">
+          🩺 What are the number of patients Dr is attending?
+        </span>
+        <span class="prompt-chip" (click)="applyQuickPrompt('Find patients with high fever')">
+          🔍 Patients with High Fever
+        </span>
+        <span class="prompt-chip" (click)="applyQuickPrompt('Who is taking Metformin?')">
+          💊 Patients taking Metformin
+        </span>
+      </div>
+
+      <!-- Chat Messages Scroll Area -->
+      <div class="chat-messages" #chatMessagesContainer>
+        <div *ngFor="let msg of chatMessages" class="chat-bubble-row" [class.user-row]="msg.isUser" [class.bot-row]="!msg.isUser">
+          <div class="bubble-avatar" *ngIf="!msg.isUser">
+            <mat-icon>psychology</mat-icon>
+          </div>
+          <div class="bubble-content" [class.user-bubble]="msg.isUser" [class.bot-bubble]="!msg.isUser">
+            <div class="bubble-sender">{{ msg.isUser ? 'You (Admin)' : 'Global Search Assistant' }}</div>
+            <div class="bubble-text" [innerHTML]="msg.formattedText || msg.text"></div>
+            <div class="bubble-meta" *ngIf="msg.executionTimeMs">
+              <span class="speed-badge">⚡ {{ msg.executionTimeMs }} ms</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Thinking State -->
+        <div *ngIf="isSearchingChat" class="chat-bubble-row bot-row">
+          <div class="bubble-avatar">
+            <mat-icon>psychology</mat-icon>
+          </div>
+          <div class="bubble-content bot-bubble loading-bubble">
+            <div class="typing-indicator">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <span class="loading-text">Analyzing hospital data & executing global search...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Input Footer -->
+      <div class="chat-footer">
+        <form (ngSubmit)="sendGlobalSearchChat()" class="chat-input-form">
+          <input 
+            type="text" 
+            [(ngModel)]="chatInputQuery" 
+            name="chatQuery" 
+            placeholder="Ask anything (e.g. 'what are the number of patiens Dr is attending?')..." 
+            [disabled]="isSearchingChat"
+            autocomplete="off">
+          <button type="submit" [disabled]="!chatInputQuery.trim() || isSearchingChat" class="btn-send-chat" title="Send Query">
+            <mat-icon>send</mat-icon>
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+</div>
