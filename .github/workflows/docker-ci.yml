@@ -1,4 +1,4 @@
-name: Build and Push to Docker Hub
+name: Build, Push and Auto-Deploy
 
 on:
   push:
@@ -9,8 +9,11 @@ env:
   DOCKER_USER: rajan69106
 
 jobs:
+  # ------------------------------------------------------------
+  # JOB 1: Build & Push all 5 Docker Images to Docker Hub (Cloud)
+  # ------------------------------------------------------------
   build-and-push:
-    name: Build and Push 5 Docker Images
+    name: 1. Build and Push 5 Docker Images
     runs-on: ubuntu-latest
 
     steps:
@@ -30,3 +33,20 @@ jobs:
       - name: Push all Docker Images to Docker Hub
         run: |
           docker compose push
+
+  # ------------------------------------------------------------
+  # JOB 2: Auto-Deploy on Local System (Self-Hosted Runner)
+  # ------------------------------------------------------------
+  deploy:
+    name: 2. Auto-Deploy to Docker Containers
+    needs: build-and-push
+    runs-on: self-hosted
+
+    steps:
+      - name: Pull Latest Images from Docker Hub
+        run: |
+          docker compose pull
+
+      - name: Restart Healthcare System with Newest Code
+        run: |
+          docker compose up -d --remove-orphans
