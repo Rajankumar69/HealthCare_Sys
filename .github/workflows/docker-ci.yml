@@ -1,4 +1,4 @@
-name: Build and Push to Docker Hub
+name: Build, Push and Deploy
 
 on:
   push:
@@ -9,8 +9,11 @@ env:
   DOCKER_USER: rajan69106
 
 jobs:
+  # ------------------------------------------------------------
+  # STAGE 1: Build & Push all 5 Images to Docker Hub
+  # ------------------------------------------------------------
   build-and-push:
-    name: Build and Push 5 Docker Images to Docker Hub
+    name: 1. Build and Push to Docker Hub
     runs-on: ubuntu-latest
 
     steps:
@@ -30,3 +33,37 @@ jobs:
       - name: Push all Docker Images to Docker Hub
         run: |
           docker compose push
+
+  # ------------------------------------------------------------
+  # STAGE 2: Deploy & Health-Check Live System
+  # ------------------------------------------------------------
+  deploy:
+    name: 2. Deploy Healthcare System
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME || 'rajan69106' }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Pull and Deploy All 5 Containers
+        run: |
+          docker compose pull
+          docker compose up -d
+
+      - name: Verify Live Deployment (Health Checks)
+        run: |
+          echo "Waiting for services to initialize..."
+          sleep 12
+          docker compose ps
+          echo "Testing API Gateway..."
+          curl -f http://localhost:5000
+          echo "Testing Frontend Application..."
+          curl -f http://localhost:4200
+          echo "Healthcare System successfully deployed and verified!"
