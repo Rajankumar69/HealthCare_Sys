@@ -1,4 +1,4 @@
-name: Build, Push and Auto-Deploy
+name: Build and Push to Docker Hub
 
 on:
   push:
@@ -9,11 +9,8 @@ env:
   DOCKER_USER: rajan69106
 
 jobs:
-  # ------------------------------------------------------------
-  # JOB 1: Build & Push all 5 Docker Images to Docker Hub (Cloud)
-  # ------------------------------------------------------------
   build-and-push:
-    name: 1. Build and Push 5 Docker Images
+    name: Build and Push 5 Docker Images to Docker Hub
     runs-on: ubuntu-latest
 
     steps:
@@ -24,7 +21,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME || 'rajan69106' }}
-          password: ${{ secrets.DOCKERHUB_TOKEN || 'dckr_pat_TYEFkk0lLjGzWX86sSCd7mPQMwg' }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build all Docker Images
         run: |
@@ -33,17 +30,3 @@ jobs:
       - name: Push all Docker Images to Docker Hub
         run: |
           docker compose push
-
-  deploy:
-    name: 2. Auto-Deploy to Docker Containers
-    needs: build-and-push
-    runs-on: self-hosted
-
-    steps:
-      - name: Pull Latest Images from Docker Hub
-        run: |
-          docker compose pull
-
-      - name: Restart Healthcare System with Newest Code
-        run: |
-          docker compose up -d --remove-orphans
