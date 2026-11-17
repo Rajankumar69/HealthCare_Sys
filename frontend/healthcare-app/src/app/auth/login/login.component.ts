@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectorRef, NgZone } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -33,7 +33,9 @@ export class LoginComponent {
     private patientService: PatientService,
     private router: Router,
     private snackBar: MatSnackBar,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -82,27 +84,33 @@ export class LoginComponent {
     this.isLoading = true;
     this.authService.login(this.loginForm.value).subscribe({
       next: (user) => {
-        this.isLoading = false;
-        this.snackBar.open(`Welcome back, ${user.fullName}!`, 'OK', { duration: 3000 });
-        
-        // Role-based redirect
-        const role = user.role.toLowerCase();
-        if (role === 'admin') {
-          this.router.navigate(['/admin']);
-        } else if (role === 'doctor') {
-          this.router.navigate(['/doctor']);
-        } else if (role === 'nurse') {
-          this.router.navigate(['/nurse']);
-        } else if (role === 'frontdesk' || role === 'front desk') {
-          this.router.navigate(['/frontdesk']);
-        } else {
-          this.router.navigate(['/patient']);
-        }
+        this.ngZone.run(() => {
+          this.isLoading = false;
+          this.cdr.detectChanges();
+          this.snackBar.open(`Welcome back, ${user.fullName}!`, 'OK', { duration: 3000 });
+          
+          // Role-based redirect
+          const role = user.role.toLowerCase();
+          if (role === 'admin') {
+            this.router.navigate(['/admin']);
+          } else if (role === 'doctor') {
+            this.router.navigate(['/doctor']);
+          } else if (role === 'nurse') {
+            this.router.navigate(['/nurse']);
+          } else if (role === 'frontdesk' || role === 'front desk') {
+            this.router.navigate(['/frontdesk']);
+          } else {
+            this.router.navigate(['/patient']);
+          }
+        });
       },
       error: (err) => {
-        this.isLoading = false;
-        const msg = err.error?.message || 'Login failed. Please verify credentials.';
-        this.snackBar.open(msg, 'Close', { duration: 4000 });
+        this.ngZone.run(() => {
+          this.isLoading = false;
+          this.cdr.detectChanges();
+          const msg = err.error?.message || 'Login failed. Please verify credentials.';
+          this.snackBar.open(msg, 'Close', { duration: 4000 });
+        });
       }
     });
   }
@@ -112,13 +120,15 @@ export class LoginComponent {
 
     this.isLoading = true;
     const val = this.registerForm.value;
+    const regEmail = (val.email || '').trim();
+    const regPassword = val.password || '';
     const fullName = `${val.prefix} ${val.firstName.trim()} ${val.lastName.trim()}`.trim();
 
     // Requirement: New registration will always be the patient
     const authPayload = {
       fullName: fullName,
-      email: val.email.trim(),
-      password: val.password,
+      email: regEmail,
+      password: regPassword,
       role: 'Patient',
       phoneNumber: val.phoneNumber.trim()
     };
@@ -140,7 +150,7 @@ export class LoginComponent {
           firstName: val.firstName.trim(),
           lastName: val.lastName.trim(),
           phoneNumber: val.phoneNumber.trim(),
-          email: val.email.trim(),
+          email: regEmail,
           gender: (val.prefix === 'Mrs.' || val.prefix === 'Ms.') ? 'Female' : 'Male',
           dateOfBirth: dobString,
           age: Number(val.age) || 0,
@@ -151,26 +161,37 @@ export class LoginComponent {
 
         this.patientService.createPatient(patientPayload).subscribe({
           next: () => {
-            this.finishRegistration();
+            this.finishRegistration(regEmail, regPassword);
           },
           error: () => {
-            this.finishRegistration();
+            this.finishRegistration(regEmail, regPassword);
           }
         });
       },
       error: (err) => {
-        this.isLoading = false;
-        const msg = err.error?.message || 'Registration failed. Please check your details.';
-        this.snackBar.open(msg, 'Close', { duration: 4000 });
+        this.ngZone.run(() => {
+          this.isLoading = false;
+          this.cdr.detectChanges();
+          const msg = err.error?.message || 'Registration failed. Please check your details.';
+          this.snackBar.open(msg, 'Close', { duration: 4000 });
+        });
       }
     });
   }
 
-  private finishRegistration(): void {
-    this.isLoading = false;
-    this.snackBar.open('Registration completed! Please sign in.', 'OK', { duration: 4000 });
-    this.activeTab = 0;
-    this.loginForm.patchValue({ email: this.registerForm.value.email, password: this.registerForm.value.password });
+  private finishRegistration(email?: string, password?: string): void {
+    this.ngZone.run(() => {
+      this.isLoading = false;
+      this.activeTab = 0;
+      if (email && password) {
+        this.loginForm.patchValue({ email, password });
+      }
+      this.registerForm.reset({
+        prefix: 'Mr.'
+      });
+      this.cdr.detectChanges();
+      this.snackBar.open('Registration completed! Please sign in.', 'OK', { duration: 4000 });
+    });
   }
 
   openForgotPassword(): void {
