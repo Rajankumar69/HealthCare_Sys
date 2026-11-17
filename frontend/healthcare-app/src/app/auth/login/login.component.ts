@@ -200,8 +200,17 @@ export class LoginComponent {
         this.ngZone.run(() => {
           this.isLoading = false;
           this.cdr.detectChanges();
-          const msg = err.error?.message || 'Registration failed. Please check your details.';
-          this.snackBar.open(msg, 'Close', { duration: 4000 });
+          let msg = err.error?.message;
+          if (!msg && err.error?.errors) {
+            const firstKey = Object.keys(err.error.errors)[0];
+            if (firstKey && err.error.errors[firstKey]?.length) {
+              msg = err.error.errors[firstKey][0];
+            }
+          }
+          if (!msg) {
+            msg = 'Registration failed. Please check your details.';
+          }
+          this.snackBar.open(msg, 'Close', { duration: 5000 });
         });
       }
     });

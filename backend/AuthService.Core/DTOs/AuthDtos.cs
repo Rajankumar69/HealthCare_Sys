@@ -32,7 +32,7 @@ namespace AuthService.DTOs
     {
         [Required]
         [MaxLength(150)]
-        [RegularExpression(@"^[a-zA-Z\s]+$", ErrorMessage = "Full name can only contain letters and spaces (no symbols or numbers).")]
+        [RegularExpression(@"^[a-zA-Z\s\.]+$", ErrorMessage = "Full name can only contain letters, spaces and title.")]
         public string FullName { get; set; } = string.Empty;
 
         [Required]
@@ -73,7 +73,7 @@ namespace AuthService.DTOs
     public class RegisterRequestDto
     {
         [Required]
-        [RegularExpression(@"^[a-zA-Z\s]+$", ErrorMessage = "Full name can only contain letters and spaces (no symbols or numbers).")]
+        [RegularExpression(@"^[a-zA-Z\s\.]+$", ErrorMessage = "Full name can only contain letters, spaces and title.")]
         public string FullName { get; set; } = string.Empty;
 
         [Required]
