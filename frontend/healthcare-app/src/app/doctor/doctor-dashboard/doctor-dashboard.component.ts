@@ -60,9 +60,17 @@ export class DoctorDashboardComponent implements OnInit {
   patientLoadError: string | null = null;
   patientColumns = ['id', 'name', 'contact', 'adhar', 'age', 'problem', 'actions'];
 
-  // Appointments
+  // Appointments State
+  allAppointments: Appointment[] = [];
   newAppointments: Appointment[] = [];
   rescheduledAppointments: Appointment[] = [];
+  filteredDayAppointments: Appointment[] = [];
+
+  // Day Filter State (Requirement: Doctor dashboard appointments organized by day with top-corner selector)
+  selectedDayFilter: 'today' | 'tomorrow' | 'custom' | 'all' = 'today';
+  selectedDate: string = '';
+  selectedDayLabel: string = 'Today';
+  appointmentStatusSubFilter: 'all' | 'confirmed' | 'rescheduled' | 'done' = 'all';
 
   // AI Summary State for Dashboard
   selectedPatientForAi: Patient | null = null;
@@ -90,6 +98,7 @@ export class DoctorDashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.currentView = readValidQueryParam(this.route, 'view', this.allowedViews, 'appointments');
+    this.initDayFilter();
     this.authService.currentUser$.subscribe(user => {
       if (user) {
         this.currentUser = user;
@@ -184,20 +193,195 @@ export class DoctorDashboardComponent implements OnInit {
     this.loadPatients();
   }
 
+  private formatDateToIso(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  getTodayString(): string {
+    return this.formatDateToIso(new Date());
+  }
+
+  getTomorrowString(): string {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return this.formatDateToIso(d);
+  }
+
+  initDayFilter(): void {
+    if (!this.selectedDate) {
+      this.selectedDate = this.getTodayString();
+    }
+    this.updateDayLabel();
+  }
+
+  setDayFilter(filter: 'today' | 'tomorrow' | 'custom' | 'all', customDate?: string): void {
+    this.selectedDayFilter = filter;
+    if (filter === 'today') {
+      this.selectedDate = this.getTodayString();
+    } else if (filter === 'tomorrow') {
+      this.selectedDate = this.getTomorrowString();
+    } else if (filter === 'custom' && customDate) {
+      this.selectedDate = customDate;
+    }
+    this.updateDayLabel();
+    this.applyDayFilter();
+    this.cdr.detectChanges();
+  }
+
+  onCustomDateChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input?.value) {
+      this.selectedDate = input.value;
+      this.selectedDayFilter = 'custom';
+      this.updateDayLabel();
+      this.applyDayFilter();
+      this.cdr.detectChanges();
+    }
+  }
+
+  goToPreviousDay(): void {
+    const baseDate = this.selectedDate ? new Date(this.selectedDate + 'T00:00:00') : new Date();
+    baseDate.setDate(baseDate.getDate() - 1);
+    this.selectedDate = this.formatDateToIso(baseDate);
+    this.selectedDayFilter = this.selectedDate === this.getTodayString() ? 'today' : 'custom';
+    this.updateDayLabel();
+    this.applyDayFilter();
+    this.cdr.detectChanges();
+  }
+
+  goToNextDay(): void {
+    const baseDate = this.selectedDate ? new Date(this.selectedDate + 'T00:00:00') : new Date();
+    baseDate.setDate(baseDate.getDate() + 1);
+    this.selectedDate = this.formatDateToIso(baseDate);
+    this.selectedDayFilter = this.selectedDate === this.getTodayString() 
+      ? 'today' 
+      : (this.selectedDate === this.getTomorrowString() ? 'tomorrow' : 'custom');
+    this.updateDayLabel();
+    this.applyDayFilter();
+    this.cdr.detectChanges();
+  }
+
+  private updateDayLabel(): void {
+    if (this.selectedDayFilter === 'all') {
+      this.selectedDayLabel = 'All Scheduled Days';
+      return;
+    }
+    if (this.selectedDayFilter === 'today') {
+      const now = new Date();
+      this.selectedDayLabel = `Today (${now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })})`;
+      return;
+    }
+    if (this.selectedDayFilter === 'tomorrow') {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      this.selectedDayLabel = `Tomorrow (${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })})`;
+      return;
+    }
+    if (this.selectedDate) {
+      const d = new Date(this.selectedDate + 'T00:00:00');
+      this.selectedDayLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    } else {
+      this.selectedDayLabel = 'Selected Date';
+    }
+  }
+
+  setAppointmentStatusSubFilter(status: 'all' | 'confirmed' | 'rescheduled' | 'done'): void {
+    this.appointmentStatusSubFilter = status;
+    this.applyDayFilter();
+    this.cdr.detectChanges();
+  }
+
+  private getApptDateKey(dateStr: any): string {
+    if (!dateStr) return '';
+    if (typeof dateStr === 'string') {
+      return dateStr.split('T')[0];
+    }
+    return this.formatDateToIso(new Date(dateStr));
+  }
+
+  private parseTimeToMinutes(timeStr?: string): number {
+    if (!timeStr) return 0;
+    const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+    if (!match) return 0;
+    let hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const ampm = match[3]?.toUpperCase();
+    if (ampm === 'PM' && hours < 12) hours += 12;
+    if (ampm === 'AM' && hours === 12) hours = 0;
+    return hours * 60 + minutes;
+  }
+
+  applyDayFilter(): void {
+    let list = [...this.allAppointments];
+
+    // Day filter
+    if (this.selectedDayFilter !== 'all') {
+      const targetDate = this.selectedDate || this.getTodayString();
+      list = list.filter(a => this.getApptDateKey(a.appointmentDate) === targetDate);
+    }
+
+    // Status subfilter
+    if (this.appointmentStatusSubFilter === 'confirmed') {
+      list = list.filter(a => {
+        const s = a.status?.toLowerCase();
+        return s === 'approved' || s === 'doctorconfirmed' || s === 'nurseapproved';
+      });
+    } else if (this.appointmentStatusSubFilter === 'rescheduled') {
+      list = list.filter(a => a.status?.toLowerCase() === 'rescheduled');
+    } else if (this.appointmentStatusSubFilter === 'done') {
+      list = list.filter(a => a.status?.toLowerCase() === 'done');
+    }
+
+    // Sort chronologically by time
+    list.sort((a, b) => {
+      const dateDiff = (a.appointmentDate || '').localeCompare(b.appointmentDate || '');
+      if (dateDiff !== 0) return dateDiff;
+      return this.parseTimeToMinutes(a.appointmentTime) - this.parseTimeToMinutes(b.appointmentTime);
+    });
+
+    this.filteredDayAppointments = list;
+  }
+
   loadAppointments(): void {
     const doctorId = this.currentUser?.userId;
 
     this.appointmentService.getAppointments(doctorId).subscribe({
       next: (res) => {
         const list = res || [];
+        this.allAppointments = list;
         this.newAppointments = list.filter(a => {
           const s = a.status?.toLowerCase();
           return s === 'doctorconfirmed' || s === 'approved' || s === 'nurseapproved';
         });
         this.rescheduledAppointments = list.filter(a => a.status?.toLowerCase() === 'rescheduled');
+        this.applyDayFilter();
         this.cdr.detectChanges();
       }
     });
+  }
+
+  openAiSummaryForAppt(appt: Appointment): void {
+    const dummyPatient: Patient = {
+      patientID: appt.patientId,
+      userId: 0,
+      prefix: '',
+      firstName: appt.patientName,
+      lastName: '',
+      phoneNumber: appt.patientPhone,
+      email: appt.patientEmail,
+      dateOfBirth: '',
+      age: 0,
+      gender: '',
+      adharNumber: '',
+      problem: appt.reason || '',
+      anyMedicalHistory: '',
+      isDeleted: false,
+      createdAt: new Date().toISOString()
+    };
+    this.openAiSummary(dummyPatient);
   }
 
   navigateToPatientDetails(patientId: number, appointmentId?: number): void {

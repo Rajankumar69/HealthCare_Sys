@@ -236,50 +236,180 @@
             </mat-card>
           </div>
 
-          <!-- VIEW 2: APPOINTMENTS -->
+          <!-- VIEW 2: APPOINTMENTS (Organized by Day with Top Corner Day Selector) -->
           <div *ngIf="currentView === 'appointments'" class="content-section">
-            <div class="section-top">
-              <div>
-                <h2>Appointments</h2>
-                <p class="sub">Scheduled consultations and active appointments on your clinical calendar.</p>
+            <div class="appointments-toolbar-row">
+              <div class="toolbar-title-group">
+                <div class="title-with-badge">
+                  <h2>Appointments Schedule</h2>
+                  <span class="day-indicator-badge">
+                    <mat-icon>calendar_month</mat-icon>
+                    <span>{{ selectedDayLabel }}</span>
+                  </span>
+                </div>
+                <p class="sub">
+                  Consultations for <strong>{{ selectedDayLabel }}</strong>
+                  <span class="count-bubble">{{ filteredDayAppointments.length }} Scheduled</span>
+                </p>
+              </div>
+
+              <!-- TOP CORNER: DAY SELECTOR -->
+              <div class="day-selector-card">
+                <div class="day-nav-arrows">
+                  <button type="button" class="arrow-btn" (click)="goToPreviousDay()" title="Previous Day">
+                    <mat-icon>chevron_left</mat-icon>
+                  </button>
+                </div>
+
+                <!-- Quick Day Switcher Pills -->
+                <div class="day-filter-pills">
+                  <button type="button" 
+                          class="day-pill-btn" 
+                          [class.active]="selectedDayFilter === 'today'" 
+                          (click)="setDayFilter('today')">
+                    <mat-icon>today</mat-icon>
+                    <span>Today</span>
+                  </button>
+                  <button type="button" 
+                          class="day-pill-btn" 
+                          [class.active]="selectedDayFilter === 'tomorrow'" 
+                          (click)="setDayFilter('tomorrow')">
+                    <mat-icon>event</mat-icon>
+                    <span>Tomorrow</span>
+                  </button>
+                  <button type="button" 
+                          class="day-pill-btn" 
+                          [class.active]="selectedDayFilter === 'all'" 
+                          (click)="setDayFilter('all')">
+                    <mat-icon>date_range</mat-icon>
+                    <span>All Days</span>
+                  </button>
+                </div>
+
+                <!-- Date Picker Input -->
+                <div class="custom-date-picker-wrap" title="Pick a specific date">
+                  <mat-icon class="calendar-icon">edit_calendar</mat-icon>
+                  <input type="date" 
+                         [value]="selectedDate" 
+                         (change)="onCustomDateChange($event)" 
+                         class="native-date-input">
+                </div>
+
+                <div class="day-nav-arrows">
+                  <button type="button" class="arrow-btn" (click)="goToNextDay()" title="Next Day">
+                    <mat-icon>chevron_right</mat-icon>
+                  </button>
+                </div>
               </div>
             </div>
 
+            <!-- SUB-FILTER BAR (Status tabs for the day: All, Confirmed, Rescheduled, Done) -->
+            <div class="status-subfilter-bar">
+              <button type="button" 
+                      class="subfilter-chip" 
+                      [class.active]="appointmentStatusSubFilter === 'all'" 
+                      (click)="setAppointmentStatusSubFilter('all')">
+                All ({{ allAppointments.length }})
+              </button>
+              <button type="button" 
+                      class="subfilter-chip" 
+                      [class.active]="appointmentStatusSubFilter === 'confirmed'" 
+                      (click)="setAppointmentStatusSubFilter('confirmed')">
+                Confirmed ({{ newAppointments.length }})
+              </button>
+              <button type="button" 
+                      class="subfilter-chip warning-chip" 
+                      [class.active]="appointmentStatusSubFilter === 'rescheduled'" 
+                      (click)="setAppointmentStatusSubFilter('rescheduled')">
+                Rescheduled ({{ rescheduledAppointments.length }})
+              </button>
+              <button type="button" 
+                      class="subfilter-chip done-chip" 
+                      [class.active]="appointmentStatusSubFilter === 'done'" 
+                      (click)="setAppointmentStatusSubFilter('done')">
+                Completed
+              </button>
+            </div>
+
             <div class="appointment-cards-grid">
-              <div *ngFor="let appt of newAppointments" class="appt-card confirmed-border">
+              <div *ngFor="let appt of filteredDayAppointments" 
+                   class="appt-card"
+                   [class.confirmed-border]="appt.status?.toLowerCase() === 'approved' || appt.status?.toLowerCase() === 'doctorconfirmed' || appt.status?.toLowerCase() === 'nurseapproved'"
+                   [class.rescheduled-border]="appt.status?.toLowerCase() === 'rescheduled'"
+                   [class.done-border]="appt.status?.toLowerCase() === 'done'">
                 <div class="appt-header">
                   <div>
                     <span class="badge-status" [ngClass]="getStatusClass(appt.status)">{{ appt.status === 'Approved' ? 'Confirmed' : appt.status }}</span>
                     <h3>{{ appt.patientName }}</h3>
                   </div>
-                  <span class="appt-date-chip">{{ appt.appointmentDate | date:'mediumDate' }} {{ appt.appointmentTime }}</span>
+                  <div class="header-right-meta">
+                    <span class="appt-time-chip">
+                      <mat-icon>schedule</mat-icon>
+                      {{ appt.appointmentTime }}
+                    </span>
+                    <span class="appt-date-chip">
+                      <mat-icon>calendar_today</mat-icon>
+                      {{ appt.appointmentDate | date:'mediumDate' }}
+                    </span>
+                  </div>
                 </div>
 
                 <div class="appt-details">
-                  <p><strong>Reason:</strong> {{ appt.reason || 'Regular checkup' }}</p>
-                  <p *ngIf="appt.notes"><strong>Clinical Notes:</strong> {{ appt.notes }}</p>
+                  <p><strong>Chief Complaint:</strong> {{ appt.reason || 'Regular checkup' }}</p>
+                  <p class="contact-info"><strong>Contact:</strong> {{ appt.patientPhone }} &bull; {{ appt.patientEmail }}</p>
+
+                  <div *ngIf="appt.status?.toLowerCase() === 'rescheduled'" class="rescheduled-info-box">
+                    <mat-icon class="resched-icon">history_toggle_off</mat-icon>
+                    <div class="resched-text">
+                      <strong>Rescheduled by Front Desk / Nurse:</strong>
+                      <span>{{ appt.notes || 'Time slot was updated by clinic staff.' }}</span>
+                    </div>
+                  </div>
+
+                  <p *ngIf="appt.notes && appt.status?.toLowerCase() !== 'rescheduled'">
+                    <strong>Clinical Notes:</strong> {{ appt.notes }}
+                  </p>
                 </div>
 
                 <div class="appt-actions">
-                  <button mat-stroked-button color="primary" (click)="viewPatientById(appt.patientId, appt.appointmentId)">
-                    <mat-icon>medical_information</mat-icon> Open Patient Medical Chart
-                  </button>
+                  <div class="actions-left">
+                    <span class="readonly-badge">
+                      <mat-icon>visibility</mat-icon> Read-Only (Front Desk & Nurses Reschedule)
+                    </span>
+                  </div>
+                  <div class="actions-right">
+                    <button mat-stroked-button color="accent" class="btn-ai-card" (click)="openAiSummaryForAppt(appt)">
+                      <mat-icon>auto_awesome</mat-icon> AI Summary
+                    </button>
+                    <button mat-flat-button color="primary" class="btn-view-chart-sm" (click)="viewPatientById(appt.patientId, appt.appointmentId)">
+                      <mat-icon>medical_information</mat-icon> Open Patient Medical Chart
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div *ngIf="newAppointments.length === 0" class="empty-card">
+              <div *ngIf="filteredDayAppointments.length === 0" class="empty-card">
                 <span class="material-icons">event_busy</span>
-                <p>No appointments found on your schedule.</p>
+                <h3>No Appointments for {{ selectedDayLabel }}</h3>
+                <p>No patient consultations found on this day. Use the top corner selector to choose another day or view all days.</p>
+                <div class="empty-card-actions">
+                  <button mat-stroked-button color="primary" (click)="setDayFilter('today')" *ngIf="selectedDayFilter !== 'today'">
+                    View Today
+                  </button>
+                  <button mat-stroked-button (click)="setDayFilter('all')" *ngIf="selectedDayFilter !== 'all'">
+                    View All Days
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- VIEW 4: RESCHEDULED APPOINTMENTS -->
+          <!-- VIEW 4: RESCHEDULED APPOINTMENTS (Read-only view for Doctors) -->
           <div *ngIf="currentView === 'rescheduled'" class="content-section">
             <div class="section-top">
               <div>
-                <h2>Rescheduled Appointments</h2>
-                <p class="sub">Appointments updated with modified time slots or dates.</p>
+                <h2>Rescheduled Appointments (View Only)</h2>
+                <p class="sub">Appointments modified by Front Desk or Nurses. Doctors have view authority.</p>
               </div>
             </div>
 
@@ -290,21 +420,43 @@
                     <span class="badge-status status-rescheduled">Rescheduled</span>
                     <h3>{{ appt.patientName }}</h3>
                   </div>
-                  <span class="appt-date-chip">{{ appt.appointmentDate | date:'mediumDate' }} at {{ appt.appointmentTime }}</span>
+                  <div class="header-right-meta">
+                    <span class="appt-time-chip">
+                      <mat-icon>schedule</mat-icon>
+                      {{ appt.appointmentTime }}
+                    </span>
+                    <span class="appt-date-chip">
+                      <mat-icon>calendar_today</mat-icon>
+                      {{ appt.appointmentDate | date:'mediumDate' }}
+                    </span>
+                  </div>
                 </div>
 
                 <div class="appt-details">
                   <p><strong>Reason:</strong> {{ appt.reason }}</p>
-                  <p *ngIf="appt.notes"><strong>Reschedule Details:</strong> {{ appt.notes }}</p>
+                  <div class="rescheduled-info-box">
+                    <mat-icon class="resched-icon">history_toggle_off</mat-icon>
+                    <div class="resched-text">
+                      <strong>Reschedule Details:</strong>
+                      <span>{{ appt.notes || 'Updated by Front Desk / Nursing staff.' }}</span>
+                    </div>
+                  </div>
                 </div>
 
-                <div class="appt-actions doctor-reschedule-actions">
-                  <button mat-flat-button color="primary" class="btn-confirm-reschedule" (click)="confirmDoctorAppointment(appt)">
-                    <mat-icon>check_circle</mat-icon> Confirm
-                  </button>
-                  <button mat-flat-button color="warn" class="btn-cancel-reschedule" (click)="cancelDoctorAppointment(appt)">
-                    <mat-icon>cancel</mat-icon> Cancel
-                  </button>
+                <div class="appt-actions">
+                  <div class="actions-left">
+                    <span class="readonly-badge">
+                      <mat-icon>verified_user</mat-icon> Rescheduled by Front Desk / Nurse
+                    </span>
+                  </div>
+                  <div class="actions-right">
+                    <button mat-stroked-button color="accent" class="btn-ai-card" (click)="openAiSummaryForAppt(appt)">
+                      <mat-icon>auto_awesome</mat-icon> AI Summary
+                    </button>
+                    <button mat-flat-button color="primary" class="btn-view-chart-sm" (click)="viewPatientById(appt.patientId, appt.appointmentId)">
+                      <mat-icon>medical_information</mat-icon> Open Patient Medical Chart
+                    </button>
+                  </div>
                 </div>
               </div>
 

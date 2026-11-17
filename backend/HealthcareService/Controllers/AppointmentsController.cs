@@ -165,10 +165,21 @@ namespace HealthcareService.Controllers
             return Ok(new { message = "Appointment cancelled." });
         }
 
-        // Reschedule appointment (Nurses and Front Desk authorized)
+        // Reschedule appointment (Exclusively authorized for Nurses and Front Desk staff; Doctors are read-only)
+        // Requirement: "appointmen reschedule karne ki authority sirf front desk and nurses ke pass honi chaiye doctors bas view kar sakta he."
         [HttpPut("{id}/reschedule")]
         public async Task<IActionResult> Reschedule(int id, [FromBody] RescheduleAppointmentDto dto)
         {
+            var role = GetCallerRole();
+            if (!string.Equals(role, "FrontDesk", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(role, "Nurse", StringComparison.OrdinalIgnoreCase))
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new 
+                { 
+                    message = "Authority Denied: Only Front Desk staff and Nurses have the authority to reschedule appointments. Doctors can only view appointments." 
+                });
+            }
+
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
