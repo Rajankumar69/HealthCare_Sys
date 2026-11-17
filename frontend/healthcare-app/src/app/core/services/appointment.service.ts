@@ -7,7 +7,7 @@ import { Appointment, CreateAppointmentRequest, RescheduleAppointmentRequest, Do
   providedIn: 'root'
 })
 export class AppointmentService {
-  private apiUrl = 'http://localhost:5000/api/healthcare/appointments';
+  private apiUrl = '/api/healthcare/appointments';
 
   constructor(private http: HttpClient) {}
 

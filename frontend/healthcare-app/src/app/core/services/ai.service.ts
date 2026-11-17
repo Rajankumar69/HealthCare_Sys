@@ -4,7 +4,7 @@ import { Injectable } from '@angular/core';
   providedIn: 'root'
 })
 export class AiService {
-  private gatewayUrl = 'http://localhost:5000/api/ai';
+  private gatewayUrl = '/api/ai';
 
   private getAuthHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
     const token = localStorage.getItem('token');

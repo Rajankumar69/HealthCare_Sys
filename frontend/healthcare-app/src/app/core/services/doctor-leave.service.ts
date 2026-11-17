@@ -7,7 +7,7 @@ import { DoctorLeave } from '../models/doctor-leave.model';
   providedIn: 'root'
 })
 export class DoctorLeaveService {
-  private readonly baseUrl = 'http://localhost:5000/api/healthcare/appointments/doctor-leaves';
+  private readonly baseUrl = '/api/healthcare/appointments/doctor-leaves';
   private leavesSubject = new BehaviorSubject<DoctorLeave[]>([]);
   public leaves$ = this.leavesSubject.asObservable();
 

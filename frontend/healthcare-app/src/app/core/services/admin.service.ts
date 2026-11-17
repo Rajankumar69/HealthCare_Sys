@@ -7,7 +7,7 @@ import { AdminUsersResponse, AdminCreateUserRequest } from '../models/admin.mode
   providedIn: 'root'
 })
 export class AdminService {
-  private apiUrl = 'http://localhost:5000/api/auth/admin';
+  private apiUrl = '/api/auth/admin';
 
   constructor(private http: HttpClient) {}
 
@@ -24,6 +24,6 @@ export class AdminService {
   }
 
   getDepartments(): Observable<any[]> {
-    return this.http.get<any[]>('http://localhost:5000/api/auth/departments');
+    return this.http.get<any[]>('/api/auth/departments');
   }
 }

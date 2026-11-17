@@ -281,12 +281,12 @@ export class AdminDashboardComponent implements OnInit {
 
     const payload = { query };
     // Try ApiGateway Port 5000 first, fallback to direct GlobalSearchService Port 5030
-    this.http.post<any>('http://localhost:5000/api/globalsearch/ask', payload).subscribe({
+    this.http.post<any>('/api/globalsearch/ask', payload).subscribe({
       next: (res) => {
         this.handleSearchChatResponse(res);
       },
       error: () => {
-        this.http.post<any>('http://localhost:5030/api/globalsearch/ask', payload).subscribe({
+        this.http.post<any>('/api/globalsearch/ask', payload).subscribe({
           next: (res) => {
             this.handleSearchChatResponse(res);
           },

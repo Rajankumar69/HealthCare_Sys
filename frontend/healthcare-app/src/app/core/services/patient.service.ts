@@ -8,7 +8,7 @@ import { Patient, PaginatedPatients, PatientFullDetails, PatientVital, PatientMe
 })
 export class PatientService {
   // Routes through the centralized API Gateway on Port 5000
-  private apiUrl = 'http://localhost:5000/api/healthcare/patients';
+  private apiUrl = '/api/healthcare/patients';
 
   constructor(private http: HttpClient) {}
 
