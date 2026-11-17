@@ -71,10 +71,10 @@ export class AdminDashboardComponent implements OnInit {
   ) {
     this.userForm = this.fb.group({
       role: ['Doctor', Validators.required],
-      fullName: ['', Validators.required],
+      fullName: ['', [Validators.required, Validators.pattern(/^[a-zA-Z\s]+$/)]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
-      phoneNumber: ['', Validators.required],
+      phoneNumber: ['', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
       departmentId: [1],
       gender: ['Male'],
       age: [30],
@@ -82,6 +82,22 @@ export class AdminDashboardComponent implements OnInit {
       problem: [''],
       anyMedicalHistory: ['']
     });
+  }
+
+  sanitizeAdminFullName(): void {
+    const val = this.userForm.get('fullName')?.value || '';
+    const clean = val.replace(/[^a-zA-Z\s]/g, '');
+    if (clean !== val) {
+      this.userForm.get('fullName')?.setValue(clean, { emitEvent: false });
+    }
+  }
+
+  sanitizeAdminPhone(): void {
+    const val = this.userForm.get('phoneNumber')?.value || '';
+    const clean = val.replace(/[^0-9]/g, '').slice(0, 10);
+    if (clean !== val) {
+      this.userForm.get('phoneNumber')?.setValue(clean, { emitEvent: false });
+    }
   }
 
   ngOnInit(): void {

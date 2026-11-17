@@ -389,16 +389,18 @@
 
               <mat-form-field appearance="outline" class="col-name">
                 <mat-label>First Name *</mat-label>
-                <input matInput formControlName="firstName" placeholder="First Name" required>
+                <input matInput formControlName="firstName" (input)="sanitizePatientName('firstName')" placeholder="First Name" maxlength="50" required>
                 <mat-icon matPrefix>badge</mat-icon>
                 <mat-error *ngIf="patientDetailsForm.get('firstName')?.hasError('required')">First name is required</mat-error>
+                <mat-error *ngIf="patientDetailsForm.get('firstName')?.hasError('pattern')">Letters only (no symbols)</mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline" class="col-name">
                 <mat-label>Last Name *</mat-label>
-                <input matInput formControlName="lastName" placeholder="Last Name" required>
+                <input matInput formControlName="lastName" (input)="sanitizePatientName('lastName')" placeholder="Last Name" maxlength="50" required>
                 <mat-icon matPrefix>badge</mat-icon>
                 <mat-error *ngIf="patientDetailsForm.get('lastName')?.hasError('required')">Last name is required</mat-error>
+                <mat-error *ngIf="patientDetailsForm.get('lastName')?.hasError('pattern')">Letters only (no symbols)</mat-error>
               </mat-form-field>
             </div>
 
@@ -435,10 +437,11 @@
 
               <!-- Aadhaar -->
               <mat-form-field appearance="outline" class="col-adhar">
-                <mat-label>Aadhaar / National ID *</mat-label>
-                <input matInput formControlName="adharNumber" placeholder="1234-5678-9012" required>
+                <mat-label>Aadhaar Number (12 digits) *</mat-label>
+                <input matInput formControlName="adharNumber" (input)="sanitizePatientAdhar()" placeholder="123456789012" maxlength="12" required>
                 <mat-icon matPrefix>fingerprint</mat-icon>
                 <mat-error *ngIf="patientDetailsForm.get('adharNumber')?.hasError('required')">Aadhaar is required</mat-error>
+                <mat-error *ngIf="patientDetailsForm.get('adharNumber')?.hasError('pattern')">Must be 12 digits (numbers only)</mat-error>
               </mat-form-field>
             </div>
 
@@ -463,10 +466,11 @@
               </mat-form-field>
 
               <mat-form-field appearance="outline" class="col-half">
-                <mat-label>Phone Number *</mat-label>
-                <input matInput formControlName="phoneNumber" placeholder="+91 9876543210" required>
+                <mat-label>Phone Number (10 digits) *</mat-label>
+                <input matInput formControlName="phoneNumber" (input)="sanitizePatientPhone()" placeholder="9876543210" maxlength="10" required>
                 <mat-icon matPrefix>phone</mat-icon>
                 <mat-error *ngIf="patientDetailsForm.get('phoneNumber')?.hasError('required')">Phone is required</mat-error>
+                <mat-error *ngIf="patientDetailsForm.get('phoneNumber')?.hasError('pattern')">Must be 10 digits (no symbols)</mat-error>
               </mat-form-field>
             </div>
 

@@ -83,6 +83,18 @@ export class EditStaffProfileModalComponent implements OnChanges {
     this.closed.emit();
   }
 
+  sanitizeFullName(): void {
+    if (this.form.fullName) {
+      this.form.fullName = this.form.fullName.replace(/[^a-zA-Z\s]/g, '');
+    }
+  }
+
+  sanitizePhone(): void {
+    if (this.form.phoneNumber) {
+      this.form.phoneNumber = this.form.phoneNumber.replace(/[^0-9]/g, '').slice(0, 10);
+    }
+  }
+
   onSubmit(): void {
     if (!this.user) return;
 
@@ -94,6 +106,19 @@ export class EditStaffProfileModalComponent implements OnChanges {
       return;
     }
 
+    if (!/^[a-zA-Z\s]+$/.test(fullName)) {
+      this.errorMessage = 'Full name can only contain letters and spaces (no symbols or numbers).';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const cleanPhone = this.form.phoneNumber ? this.form.phoneNumber.replace(/[^0-9]/g, '').trim() : '';
+    if (cleanPhone && cleanPhone.length !== 10) {
+      this.errorMessage = 'Phone number must be exactly 10 digits (no symbols allowed).';
+      this.cdr.detectChanges();
+      return;
+    }
+
     this.isSaving = true;
     this.errorMessage = null;
     this.cdr.detectChanges();
@@ -101,7 +126,7 @@ export class EditStaffProfileModalComponent implements OnChanges {
     const payload: UpdateProfileRequest = {
       fullName,
       email,
-      phoneNumber: this.form.phoneNumber?.trim() || undefined,
+      phoneNumber: cleanPhone || undefined,
       departmentId: this.form.departmentId ? Number(this.form.departmentId) : null,
       jobTitle: this.form.jobTitle?.trim() || undefined,
       workLocation: this.form.workLocation?.trim() || undefined

@@ -21,9 +21,9 @@
 
       <div class="form-grid">
         <div class="form-field-group">
-          <label class="field-label">Full Name *</label>
-          <input type="text" [(ngModel)]="form.fullName" name="fullName" required maxlength="150"
-                 class="modern-input" placeholder="Enter full name">
+          <label class="field-label">Full Name * (Letters only, no symbols)</label>
+          <input type="text" [(ngModel)]="form.fullName" (input)="sanitizeFullName()" name="fullName" required maxlength="100"
+                 class="modern-input" placeholder="e.g. Dr Sarah Johnson">
         </div>
 
         <div class="form-field-group">
@@ -33,9 +33,9 @@
         </div>
 
         <div class="form-field-group">
-          <label class="field-label">Phone Number</label>
-          <input type="text" [(ngModel)]="form.phoneNumber" name="phoneNumber" maxlength="50"
-                 class="modern-input" placeholder="e.g. +91 9876543210">
+          <label class="field-label">Phone Number (10 digits, no symbols)</label>
+          <input type="text" [(ngModel)]="form.phoneNumber" (input)="sanitizePhone()" name="phoneNumber" maxlength="10"
+                 class="modern-input" placeholder="9876543210">
         </div>
 
         <div class="form-field-group">

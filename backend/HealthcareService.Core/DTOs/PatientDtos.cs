@@ -33,15 +33,18 @@ namespace HealthcareService.DTOs
         [Required]
         public string Prefix { get; set; } = "Mr.";
 
-        [Required]
+        [Required(ErrorMessage = "First name is mandatory.")]
+        [RegularExpression(@"^[a-zA-Z\s]+$", ErrorMessage = "First name can only contain letters and spaces (no symbols or numbers).")]
         public string FirstName { get; set; } = string.Empty;
 
-        [Required]
+        [Required(ErrorMessage = "Last name is mandatory.")]
+        [RegularExpression(@"^[a-zA-Z\s]+$", ErrorMessage = "Last name can only contain letters and spaces (no symbols or numbers).")]
         public string LastName { get; set; } = string.Empty;
 
         public string? Gender { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Phone number is mandatory.")]
+        [RegularExpression(@"^[0-9]{10}$", ErrorMessage = "Phone number must be exactly 10 digits without symbols.")]
         public string PhoneNumber { get; set; } = string.Empty;
 
         [Required]
@@ -53,6 +56,7 @@ namespace HealthcareService.DTOs
         public string? Problem { get; set; }
 
         [Required(ErrorMessage = "Aadhaar number is mandatory.")]
+        [RegularExpression(@"^[0-9]{12}$", ErrorMessage = "Aadhaar number must be exactly 12 digits.")]
         public string AdharNumber { get; set; } = string.Empty;
 
         [Required]
@@ -68,16 +72,19 @@ namespace HealthcareService.DTOs
         [Required]
         public string Prefix { get; set; } = "Mr.";
 
-        [Required]
+        [Required(ErrorMessage = "First name is mandatory.")]
+        [RegularExpression(@"^[a-zA-Z\s]+$", ErrorMessage = "First name can only contain letters and spaces (no symbols or numbers).")]
         public string FirstName { get; set; } = string.Empty;
 
-        [Required]
+        [Required(ErrorMessage = "Last name is mandatory.")]
+        [RegularExpression(@"^[a-zA-Z\s]+$", ErrorMessage = "Last name can only contain letters and spaces (no symbols or numbers).")]
         public string LastName { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Gender is mandatory.")]
         public string Gender { get; set; } = "Male";
 
-        [Required]
+        [Required(ErrorMessage = "Phone number is mandatory.")]
+        [RegularExpression(@"^[0-9]{10}$", ErrorMessage = "Phone number must be exactly 10 digits without symbols.")]
         public string PhoneNumber { get; set; } = string.Empty;
 
         [Required]
@@ -89,6 +96,7 @@ namespace HealthcareService.DTOs
         public string? Problem { get; set; }
 
         [Required(ErrorMessage = "Aadhaar number is mandatory.")]
+        [RegularExpression(@"^[0-9]{12}$", ErrorMessage = "Aadhaar number must be exactly 12 digits.")]
         public string AdharNumber { get; set; } = string.Empty;
 
         [Required]

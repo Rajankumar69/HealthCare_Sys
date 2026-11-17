@@ -81,15 +81,39 @@ export class PatientDashboardComponent implements OnInit {
 
     this.patientDetailsForm = this.fb.group({
       prefix: ['Mr.', Validators.required],
-      firstName: ['', Validators.required],
-      lastName: ['', Validators.required],
+      firstName: ['', [Validators.required, Validators.pattern(/^[a-zA-Z\s]+$/)]],
+      lastName: ['', [Validators.required, Validators.pattern(/^[a-zA-Z\s]+$/)]],
       gender: ['Male', Validators.required],
-      phoneNumber: ['', Validators.required],
+      phoneNumber: ['', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
       email: ['', [Validators.required, Validators.email]],
-      adharNumber: ['', Validators.required],
+      adharNumber: ['', [Validators.required, Validators.pattern(/^[0-9]{12}$/)]],
       dateOfBirth: [new Date('1995-01-01'), Validators.required],
       age: [31, [Validators.required, Validators.min(0)]]
     });
+  }
+
+  sanitizePatientName(field: 'firstName' | 'lastName'): void {
+    const val = this.patientDetailsForm.get(field)?.value || '';
+    const clean = val.replace(/[^a-zA-Z\s]/g, '');
+    if (clean !== val) {
+      this.patientDetailsForm.get(field)?.setValue(clean, { emitEvent: false });
+    }
+  }
+
+  sanitizePatientPhone(): void {
+    const val = this.patientDetailsForm.get('phoneNumber')?.value || '';
+    const clean = val.replace(/[^0-9]/g, '').slice(0, 10);
+    if (clean !== val) {
+      this.patientDetailsForm.get('phoneNumber')?.setValue(clean, { emitEvent: false });
+    }
+  }
+
+  sanitizePatientAdhar(): void {
+    const val = this.patientDetailsForm.get('adharNumber')?.value || '';
+    const clean = val.replace(/[^0-9]/g, '').slice(0, 12);
+    if (clean !== val) {
+      this.patientDetailsForm.get('adharNumber')?.setValue(clean, { emitEvent: false });
+    }
   }
 
   ngOnInit(): void {

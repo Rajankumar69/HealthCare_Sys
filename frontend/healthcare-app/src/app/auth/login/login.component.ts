@@ -44,15 +44,39 @@ export class LoginComponent {
 
     this.registerForm = this.fb.group({
       prefix: ['Mr.', [Validators.required]],
-      firstName: ['', [Validators.required]],
-      lastName: ['', [Validators.required]],
+      firstName: ['', [Validators.required, Validators.pattern(/^[a-zA-Z\s]+$/)]],
+      lastName: ['', [Validators.required, Validators.pattern(/^[a-zA-Z\s]+$/)]],
       age: ['', [Validators.required, Validators.min(0), Validators.max(125)]],
       dob: [null, [Validators.required]],
-      phoneNumber: ['', [Validators.required]],
-      adharNumber: ['', [Validators.required]],
+      phoneNumber: ['', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
+      adharNumber: ['', [Validators.required, Validators.pattern(/^[0-9]{12}$/)]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]]
     });
+  }
+
+  sanitizeName(field: 'firstName' | 'lastName'): void {
+    const val = this.registerForm.get(field)?.value || '';
+    const clean = val.replace(/[^a-zA-Z\s]/g, '');
+    if (clean !== val) {
+      this.registerForm.get(field)?.setValue(clean, { emitEvent: false });
+    }
+  }
+
+  sanitizePhone(): void {
+    const val = this.registerForm.get('phoneNumber')?.value || '';
+    const clean = val.replace(/[^0-9]/g, '').slice(0, 10);
+    if (clean !== val) {
+      this.registerForm.get('phoneNumber')?.setValue(clean, { emitEvent: false });
+    }
+  }
+
+  sanitizeAdhar(): void {
+    const val = this.registerForm.get('adharNumber')?.value || '';
+    const clean = val.replace(/[^0-9]/g, '').slice(0, 12);
+    if (clean !== val) {
+      this.registerForm.get('adharNumber')?.setValue(clean, { emitEvent: false });
+    }
   }
 
   onDobChange(event: any): void {
@@ -122,7 +146,11 @@ export class LoginComponent {
     const val = this.registerForm.value;
     const regEmail = (val.email || '').trim();
     const regPassword = val.password || '';
-    const fullName = `${val.prefix} ${val.firstName.trim()} ${val.lastName.trim()}`.trim();
+    const cleanFirstName = (val.firstName || '').replace(/[^a-zA-Z\s]/g, '').trim();
+    const cleanLastName = (val.lastName || '').replace(/[^a-zA-Z\s]/g, '').trim();
+    const cleanPhone = (val.phoneNumber || '').replace(/[^0-9]/g, '').slice(0, 10);
+    const cleanAdhar = (val.adharNumber || '').replace(/[^0-9]/g, '').slice(0, 12);
+    const fullName = `${val.prefix} ${cleanFirstName} ${cleanLastName}`.trim();
 
     // Requirement: New registration will always be the patient
     const authPayload = {
@@ -130,7 +158,7 @@ export class LoginComponent {
       email: regEmail,
       password: regPassword,
       role: 'Patient',
-      phoneNumber: val.phoneNumber.trim()
+      phoneNumber: cleanPhone
     };
 
     this.authService.register(authPayload).subscribe({
@@ -147,14 +175,14 @@ export class LoginComponent {
         const patientPayload = {
           userId: res.userId,
           prefix: val.prefix || 'Mr.',
-          firstName: val.firstName.trim(),
-          lastName: val.lastName.trim(),
-          phoneNumber: val.phoneNumber.trim(),
+          firstName: cleanFirstName,
+          lastName: cleanLastName,
+          phoneNumber: cleanPhone,
           email: regEmail,
           gender: (val.prefix === 'Mrs.' || val.prefix === 'Ms.') ? 'Female' : 'Male',
           dateOfBirth: dobString,
           age: Number(val.age) || 0,
-          adharNumber: val.adharNumber ? val.adharNumber.trim() : '',
+          adharNumber: cleanAdhar,
           problem: '',
           anyMedicalHistory: ''
         };

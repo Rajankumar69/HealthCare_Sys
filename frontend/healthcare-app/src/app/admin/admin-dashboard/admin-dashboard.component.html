@@ -419,8 +419,11 @@
 
           <!-- Full Name -->
           <div class="form-group">
-            <label class="form-label">Full Name *</label>
-            <input type="text" formControlName="fullName" class="form-input" placeholder="e.g. Dr. John Doe or Jane Smith">
+            <label class="form-label">Full Name * (Letters only, no symbols)</label>
+            <input type="text" formControlName="fullName" (input)="sanitizeAdminFullName()" maxlength="100" class="form-input" placeholder="e.g. Dr John Doe">
+            <small *ngIf="userForm.get('fullName')?.touched && userForm.get('fullName')?.hasError('pattern')" style="color: #dc2626; font-size: 0.8rem; font-weight: 500;">
+              Letters and spaces only (no symbols or numbers)
+            </small>
           </div>
 
           <!-- Email -->
@@ -437,8 +440,11 @@
 
           <!-- Phone Number -->
           <div class="form-group">
-            <label class="form-label">Phone Number *</label>
-            <input type="text" formControlName="phoneNumber" class="form-input" placeholder="e.g. +91 9876543210">
+            <label class="form-label">Phone Number * (10 digits, no symbols)</label>
+            <input type="text" formControlName="phoneNumber" (input)="sanitizeAdminPhone()" maxlength="10" class="form-input" placeholder="9876543210">
+            <small *ngIf="userForm.get('phoneNumber')?.touched && userForm.get('phoneNumber')?.hasError('pattern')" style="color: #dc2626; font-size: 0.8rem; font-weight: 500;">
+              Must be exactly 10 digits (no symbols allowed)
+            </small>
           </div>
 
           <!-- Department for Doctor or Nurse -->

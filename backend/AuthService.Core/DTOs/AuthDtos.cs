@@ -32,6 +32,7 @@ namespace AuthService.DTOs
     {
         [Required]
         [MaxLength(150)]
+        [RegularExpression(@"^[a-zA-Z\s]+$", ErrorMessage = "Full name can only contain letters and spaces (no symbols or numbers).")]
         public string FullName { get; set; } = string.Empty;
 
         [Required]
@@ -40,6 +41,7 @@ namespace AuthService.DTOs
         public string Email { get; set; } = string.Empty;
 
         [MaxLength(50)]
+        [RegularExpression(@"^[0-9]{10}$", ErrorMessage = "Phone number must be exactly 10 digits without symbols.")]
         public string? PhoneNumber { get; set; }
 
         public int? DepartmentId { get; set; }
@@ -71,6 +73,7 @@ namespace AuthService.DTOs
     public class RegisterRequestDto
     {
         [Required]
+        [RegularExpression(@"^[a-zA-Z\s]+$", ErrorMessage = "Full name can only contain letters and spaces (no symbols or numbers).")]
         public string FullName { get; set; } = string.Empty;
 
         [Required]
@@ -85,6 +88,7 @@ namespace AuthService.DTOs
         public string Role { get; set; } = "Patient"; // "Patient", "Doctor", "Nurse"
 
         [Required(ErrorMessage = "Phone number is mandatory.")]
+        [RegularExpression(@"^[0-9]{10}$", ErrorMessage = "Phone number must be exactly 10 digits without symbols.")]
         public string PhoneNumber { get; set; } = string.Empty;
     }
 
