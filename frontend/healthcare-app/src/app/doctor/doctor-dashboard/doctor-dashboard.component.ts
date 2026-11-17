@@ -323,18 +323,6 @@ export class DoctorDashboardComponent implements OnInit {
       list = list.filter(a => this.getApptDateKey(a.appointmentDate) === targetDate);
     }
 
-    // Status subfilter
-    if (this.appointmentStatusSubFilter === 'confirmed') {
-      list = list.filter(a => {
-        const s = a.status?.toLowerCase();
-        return s === 'approved' || s === 'doctorconfirmed' || s === 'nurseapproved';
-      });
-    } else if (this.appointmentStatusSubFilter === 'rescheduled') {
-      list = list.filter(a => a.status?.toLowerCase() === 'rescheduled');
-    } else if (this.appointmentStatusSubFilter === 'done') {
-      list = list.filter(a => a.status?.toLowerCase() === 'done');
-    }
-
     // Sort chronologically by time
     list.sort((a, b) => {
       const dateDiff = (a.appointmentDate || '').localeCompare(b.appointmentDate || '');

@@ -240,20 +240,10 @@
           <div *ngIf="currentView === 'appointments'" class="content-section">
             <div class="appointments-toolbar-row">
               <div class="toolbar-title-group">
-                <div class="title-with-badge">
-                  <h2>Appointments Schedule</h2>
-                  <span class="day-indicator-badge">
-                    <mat-icon>calendar_month</mat-icon>
-                    <span>{{ selectedDayLabel }}</span>
-                  </span>
-                </div>
-                <p class="sub">
-                  Consultations for <strong>{{ selectedDayLabel }}</strong>
-                  <span class="count-bubble">{{ filteredDayAppointments.length }} Scheduled</span>
-                </p>
+                <h2>Appointments Schedule</h2>
               </div>
 
-              <!-- TOP CORNER: DAY SELECTOR -->
+              <!-- TOP CORNER: DATES WALA TAB -->
               <div class="day-selector-card">
                 <div class="day-nav-arrows">
                   <button type="button" class="arrow-btn" (click)="goToPreviousDay()" title="Previous Day">
@@ -303,34 +293,7 @@
               </div>
             </div>
 
-            <!-- SUB-FILTER BAR (Status tabs for the day: All, Confirmed, Rescheduled, Done) -->
-            <div class="status-subfilter-bar">
-              <button type="button" 
-                      class="subfilter-chip" 
-                      [class.active]="appointmentStatusSubFilter === 'all'" 
-                      (click)="setAppointmentStatusSubFilter('all')">
-                All ({{ allAppointments.length }})
-              </button>
-              <button type="button" 
-                      class="subfilter-chip" 
-                      [class.active]="appointmentStatusSubFilter === 'confirmed'" 
-                      (click)="setAppointmentStatusSubFilter('confirmed')">
-                Confirmed ({{ newAppointments.length }})
-              </button>
-              <button type="button" 
-                      class="subfilter-chip warning-chip" 
-                      [class.active]="appointmentStatusSubFilter === 'rescheduled'" 
-                      (click)="setAppointmentStatusSubFilter('rescheduled')">
-                Rescheduled ({{ rescheduledAppointments.length }})
-              </button>
-              <button type="button" 
-                      class="subfilter-chip done-chip" 
-                      [class.active]="appointmentStatusSubFilter === 'done'" 
-                      (click)="setAppointmentStatusSubFilter('done')">
-                Completed
-              </button>
-            </div>
-
+            <!-- APPOINTMENTS LIST -->
             <div class="appointment-cards-grid">
               <div *ngFor="let appt of filteredDayAppointments" 
                    class="appt-card"
@@ -371,20 +334,16 @@
                   </p>
                 </div>
 
+                <!-- 2 Action Buttons: AI Summary & Patient Details -->
                 <div class="appt-actions">
-                  <div class="actions-left">
-                    <span class="readonly-badge">
-                      <mat-icon>visibility</mat-icon> Read-Only (Front Desk & Nurses Reschedule)
-                    </span>
-                  </div>
-                  <div class="actions-right">
-                    <button mat-stroked-button color="accent" class="btn-ai-card" (click)="openAiSummaryForAppt(appt)">
-                      <mat-icon>auto_awesome</mat-icon> AI Summary
-                    </button>
-                    <button mat-flat-button color="primary" class="btn-view-chart-sm" (click)="viewPatientById(appt.patientId, appt.appointmentId)">
-                      <mat-icon>medical_information</mat-icon> Open Patient Medical Chart
-                    </button>
-                  </div>
+                  <button type="button" class="btn-card-ai" (click)="openAiSummaryForAppt(appt)">
+                    <mat-icon>auto_awesome</mat-icon>
+                    <span>AI Summary</span>
+                  </button>
+                  <button type="button" class="btn-card-patient" (click)="viewPatientById(appt.patientId, appt.appointmentId)">
+                    <mat-icon>visibility</mat-icon>
+                    <span>Patient Details</span>
+                  </button>
                 </div>
               </div>
 
@@ -408,8 +367,8 @@
           <div *ngIf="currentView === 'rescheduled'" class="content-section">
             <div class="section-top">
               <div>
-                <h2>Rescheduled Appointments (View Only)</h2>
-                <p class="sub">Appointments modified by Front Desk or Nurses. Doctors have view authority.</p>
+                <h2>Rescheduled Appointments</h2>
+                <p class="sub">Appointments modified by Front Desk or Nurses.</p>
               </div>
             </div>
 
@@ -444,19 +403,14 @@
                 </div>
 
                 <div class="appt-actions">
-                  <div class="actions-left">
-                    <span class="readonly-badge">
-                      <mat-icon>verified_user</mat-icon> Rescheduled by Front Desk / Nurse
-                    </span>
-                  </div>
-                  <div class="actions-right">
-                    <button mat-stroked-button color="accent" class="btn-ai-card" (click)="openAiSummaryForAppt(appt)">
-                      <mat-icon>auto_awesome</mat-icon> AI Summary
-                    </button>
-                    <button mat-flat-button color="primary" class="btn-view-chart-sm" (click)="viewPatientById(appt.patientId, appt.appointmentId)">
-                      <mat-icon>medical_information</mat-icon> Open Patient Medical Chart
-                    </button>
-                  </div>
+                  <button type="button" class="btn-card-ai" (click)="openAiSummaryForAppt(appt)">
+                    <mat-icon>auto_awesome</mat-icon>
+                    <span>AI Summary</span>
+                  </button>
+                  <button type="button" class="btn-card-patient" (click)="viewPatientById(appt.patientId, appt.appointmentId)">
+                    <mat-icon>visibility</mat-icon>
+                    <span>Patient Details</span>
+                  </button>
                 </div>
               </div>
 

@@ -530,60 +530,15 @@
       align-items: center;
       flex-wrap: wrap;
       gap: 16px;
-      margin-bottom: 16px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid #e2e8f0;
+      margin-bottom: 24px;
 
       .toolbar-title-group {
-        .title-with-badge {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          flex-wrap: wrap;
-
-          h2 {
-            margin: 0;
-            font-size: 1.35rem;
-            font-weight: 700;
-            color: #0f172a;
-          }
-
-          .day-indicator-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
-            color: #0369a1;
-            font-size: 0.82rem;
-            font-weight: 700;
-            padding: 4px 12px;
-            border-radius: 20px;
-            border: 1px solid #7dd3fc;
-
-            mat-icon {
-              font-size: 16px;
-              width: 16px;
-              height: 16px;
-            }
-          }
-        }
-
-        .sub {
-          margin: 6px 0 0;
-          color: #64748b;
-          font-size: 0.88rem;
-
-          .count-bubble {
-            display: inline-block;
-            background: #f1f5f9;
-            color: #334155;
-            font-weight: 700;
-            font-size: 0.78rem;
-            padding: 2px 10px;
-            border-radius: 12px;
-            margin-left: 8px;
-            border: 1px solid #e2e8f0;
-          }
+        h2 {
+          margin: 0;
+          font-size: 1.45rem;
+          font-weight: 700;
+          color: #0f172a;
+          letter-spacing: -0.01em;
         }
       }
 
@@ -703,49 +658,6 @@
             cursor: pointer;
             font-family: inherit;
           }
-        }
-      }
-    }
-
-    /* STATUS SUB-FILTER BAR */
-    .status-subfilter-bar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-
-      .subfilter-chip {
-        border: 1px solid #e2e8f0;
-        background: #ffffff;
-        color: #475569;
-        font-size: 0.78rem;
-        font-weight: 600;
-        padding: 5px 14px;
-        border-radius: 18px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-
-        &:hover:not(.active) {
-          border-color: #cbd5e1;
-          background: #f8fafc;
-        }
-
-        &.active {
-          background: #0f172a;
-          color: #ffffff;
-          border-color: #0f172a;
-          box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15);
-        }
-
-        &.warning-chip.active {
-          background: #d97706;
-          border-color: #d97706;
-        }
-
-        &.done-chip.active {
-          background: #059669;
-          border-color: #059669;
         }
       }
     }
@@ -879,72 +791,70 @@
 
       .appt-actions {
         display: flex;
-        justify-content: space-between;
         align-items: center;
+        gap: 12px;
         border-top: 1px solid #f1f5f9;
         padding-top: 14px;
-        flex-wrap: wrap;
-        gap: 10px;
+        margin-top: 6px;
+        width: 100%;
 
-        .actions-left {
-          .readonly-badge {
-            display: inline-flex;
+        .btn-card-ai, .btn-card-patient {
+          flex: 1;
+          height: 38px;
+          border-radius: 10px;
+          font-size: 0.82rem;
+          font-weight: 600;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          cursor: pointer;
+          white-space: nowrap;
+          padding: 0 14px;
+          box-sizing: border-box;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+          mat-icon {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+            display: flex;
             align-items: center;
-            gap: 4px;
-            font-size: 0.74rem;
-            font-weight: 600;
-            color: #64748b;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            padding: 4px 8px;
-            border-radius: 8px;
-
-            mat-icon {
-              font-size: 15px;
-              width: 15px;
-              height: 15px;
-            }
+            justify-content: center;
           }
         }
 
-        .actions-right {
-          display: flex;
-          align-items: center;
-          gap: 8px;
+        .btn-card-ai {
+          background: #f0fdf4;
+          color: #16a34a;
+          border: 1.5px solid #bbf7d0;
 
-          .btn-ai-card {
-            border-radius: 8px !important;
-            font-size: 0.78rem !important;
-            padding: 4px 12px !important;
-            height: 34px !important;
-            line-height: 34px !important;
-
-            mat-icon {
-              font-size: 16px !important;
-              width: 16px !important;
-              height: 16px !important;
-              margin-right: 4px !important;
-            }
+          mat-icon {
+            color: #16a34a;
           }
 
-          .btn-view-chart-sm {
-            background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%) !important;
-            color: white !important;
-            border-radius: 8px !important;
-            font-size: 0.8rem !important;
-            font-weight: 600 !important;
-            padding: 4px 14px !important;
-            height: 34px !important;
-            line-height: 34px !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            gap: 4px !important;
+          &:hover {
+            background: #dcfce7;
+            border-color: #86efac;
+            color: #15803d;
+            transform: translateY(-1.5px);
+            box-shadow: 0 3px 8px rgba(22, 163, 74, 0.15);
+          }
+        }
 
-            mat-icon {
-              font-size: 16px !important;
-              width: 16px !important;
-              height: 16px !important;
-            }
+        .btn-card-patient {
+          background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+          color: #ffffff;
+          border: none;
+          box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+
+          mat-icon {
+            color: #ffffff;
+          }
+
+          &:hover {
+            transform: translateY(-1.5px);
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
           }
         }
       }
